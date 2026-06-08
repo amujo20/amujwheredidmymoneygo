@@ -1105,6 +1105,54 @@ function updateDarkBtn() {
 // ─────────────────────────────────────────────
 const THEMES = ['prugna', 'pomodoro', 'viola', 'vivace'];
 const THEME_LABELS = { prugna: 'Prugna 🍇', pomodoro: 'Pomodoro 🍅', viola: 'Viola 🔮', vivace: 'Vivace 🌈' };
+
+// ── Palette dei grafici derivata dal tema attivo ──
+function hexToHsl(hex) {
+  hex = hex.trim().replace('#','');
+  if (hex.length === 3) hex = hex.split('').map(c=>c+c).join('');
+  const r=parseInt(hex.slice(0,2),16)/255, g=parseInt(hex.slice(2,4),16)/255, b=parseInt(hex.slice(4,6),16)/255;
+  const max=Math.max(r,g,b), min=Math.min(r,g,b); let h, s, l=(max+min)/2;
+  if (max===min) { h=s=0; }
+  else {
+    const d=max-min;
+    s = l>0.5 ? d/(2-max-min) : d/(max+min);
+    switch(max){ case r: h=(g-b)/d+(g<b?6:0); break; case g: h=(b-r)/d+2; break; default: h=(r-g)/d+4; }
+    h/=6;
+  }
+  return { h:h*360, s:s*100, l:l*100 };
+}
+function hslStr(h,s,l,a) {
+  return a==null ? `hsl(${h.toFixed(0)},${s.toFixed(0)}%,${l.toFixed(0)}%)`
+                 : `hsla(${h.toFixed(0)},${s.toFixed(0)}%,${l.toFixed(0)}%,${a})`;
+}
+// Genera n colori distinti ma armonici a partire dai colori-chiave del tema
+function themeChartColors(n) {
+  const cs = getComputedStyle(document.documentElement);
+  const anchors = ['--accent2','--accent','--orange','--green','--kpi-top','--red','--text2']
+    .map(v => { const m = cs.getPropertyValue(v).match(/#([0-9a-fA-F]{3,6})/); return m ? m[0] : null; })
+    .filter(Boolean)
+    .map(hexToHsl);
+  if (!anchors.length) return null;
+  const out = [];
+  for (let i=0; i<n; i++) {
+    const base = anchors[i % anchors.length];
+    const cycle = Math.floor(i / anchors.length);
+    // Ad ogni giro sugli anchor sposto la luminosità per tenere le fette distinte
+    const shift = cycle===0 ? 0 : (cycle%2===1 ? 1 : -1) * 11 * Math.ceil(cycle/2);
+    const l = Math.max(30, Math.min(76, base.l + shift));
+    const s = Math.max(25, Math.min(92, base.s));
+    out.push(hslStr(base.h, s, l));
+  }
+  return out;
+}
+// Colore singolo (con alpha) preso da una variabile CSS del tema
+function themeColorVar(name, alpha) {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name);
+  const m = v.match(/#([0-9a-fA-F]{3,6})/);
+  if (!m) return v.trim() || '#888';
+  const { h, s, l } = hexToHsl(m[0]);
+  return hslStr(h, s, l, alpha);
+}
 function getTheme() {
   const t = localStorage.getItem('spesemese_theme') || 'prugna';
   return THEMES.includes(t) ? t : 'prugna';
@@ -1370,7 +1418,8 @@ function renderOverview() {
   // ── Pie chart ──
   const labels = sorted.map(([c])=>getCatInfo(c).icon+' '+getCatInfo(c).label);
   const data   = sorted.map(([,v])=>v);
-  const colors = sorted.map(([c])=>getCatInfo(c).color);
+  // Colori derivati dal tema attivo (fallback ai colori fissi delle categorie)
+  const colors = themeChartColors(sorted.length) || sorted.map(([c])=>getCatInfo(c).color);
   const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text').trim();
   const bg2Color  = getComputedStyle(document.documentElement).getPropertyValue('--bg2').trim();
   const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
@@ -1397,13 +1446,14 @@ function renderOverview() {
   const catEl  = document.getElementById('catList');
   if (!sorted.length) { catEl.innerHTML = '<div class="no-data">Nessuna spesa trovata</div>'; }
   else {
-    catEl.innerHTML = sorted.map(([c,v]) => {
+    catEl.innerHTML = sorted.map(([c,v], i) => {
       const info = getCatInfo(c);
+      const col  = colors[i] || info.color;
       const pct  = totalExp > 0 ? (v/totalExp*100).toFixed(1) : '0';
       return `<div class="cat-row">
-        <div class="cat-dot" style="background:${info.color}"></div>
+        <div class="cat-dot" style="background:${col}"></div>
         <div class="cat-name">${info.icon} ${info.label}</div>
-        <div class="cat-bar-wrap"><div class="cat-bar" style="width:${(v/maxVal*100).toFixed(1)}%;background:${info.color}"></div></div>
+        <div class="cat-bar-wrap"><div class="cat-bar" style="width:${(v/maxVal*100).toFixed(1)}%;background:${col}"></div></div>
         <div class="cat-amt">${fmtEur(v)}</div>
         <div style="font-size:11px;color:var(--text2);min-width:36px;text-align:right">${pct}%</div>
       </div>`;
@@ -1422,8 +1472,8 @@ function renderOverview() {
     data: {
       labels: barLabels,
       datasets: [
-        { label:'Entrate', data:barInc, backgroundColor:'rgba(110,154,106,.8)',  borderRadius:8 },
-        { label:'Spese',   data:barExp, backgroundColor:'rgba(184,91,72,.8)',   borderRadius:8 },
+        { label:'Entrate', data:barInc, backgroundColor:themeColorVar('--green',.82), borderRadius:8 },
+        { label:'Spese',   data:barExp, backgroundColor:themeColorVar('--red',.82),   borderRadius:8 },
       ]
     },
     options: {
@@ -2083,12 +2133,12 @@ function renderHistory() {
         datasets: [{
           label:'Spese totali',
           data: last.map(m=>personalExpenseTotal(all[m])),
-          borderColor:'#b85b48', backgroundColor:'rgba(184,91,72,.12)',
+          borderColor:themeColorVar('--red'), backgroundColor:themeColorVar('--red',.12),
           tension:.4, fill:true, pointRadius:4
         },{
           label:'Entrate totali',
           data: last.map(m=>all[m].filter(t=>t.amount>0).reduce((a,t)=>a+t.amount,0)),
-          borderColor:'#6e9a6a', backgroundColor:'rgba(110,154,106,.12)',
+          borderColor:themeColorVar('--green'), backgroundColor:themeColorVar('--green',.12),
           tension:.4, fill:true, pointRadius:4
         }]
       },
