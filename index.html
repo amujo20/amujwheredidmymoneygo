@@ -231,6 +231,28 @@
     display: inline-block; cursor: pointer; font-weight: 500;
     border: 1.5px solid transparent;
   }
+  .tx-flag {
+    font-size: 10px; padding: 2px 7px; border-radius: 20px; margin-top: 4px; margin-left: 4px;
+    display: inline-block; font-weight: 600; border: 1.5px solid transparent;
+  }
+  .flag-biz  { background: rgba(8,145,178,.14);  color: #0891b2; border-color: #0891b244; }
+  .flag-trip { background: rgba(217,119,6,.14);  color: #d97706; border-color: #d9770644; }
+  .dark .flag-biz  { background: rgba(8,145,178,.22);  color: #38bdf8; }
+  .dark .flag-trip { background: rgba(217,119,6,.22);  color: #fbbf24; }
+  /* MODAL: amount + flags */
+  .modal-amount {
+    width: 100%; padding: 11px 12px; border-radius: 12px;
+    border: 1.5px solid var(--border); background: var(--bg2); color: var(--text);
+    font-size: 16px; font-weight: 700; font-family: inherit; margin-bottom: 4px;
+  }
+  .modal-flags { display: flex; flex-direction: column; gap: 8px; margin: 12px 0 4px; }
+  .flag-toggle {
+    display: flex; align-items: center; gap: 9px; cursor: pointer;
+    padding: 10px 12px; border-radius: 12px; border: 1.5px solid var(--border);
+    background: var(--bg3); font-size: 13px; font-weight: 500; user-select: none;
+  }
+  .flag-toggle input { width: 18px; height: 18px; accent-color: var(--accent2); cursor: pointer; }
+  .flag-toggle .ft-sub { font-size: 11px; color: var(--text2); font-weight: 400; }
   .tx-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; }
   .tx-amount { font-size: 14px; font-weight: 800; }
   .tx-amount.pos { color: var(--green); }
@@ -449,6 +471,12 @@
         <option value="expense">Solo spese</option>
         <option value="income">Solo entrate</option>
       </select>
+      <select id="filtFlag" onchange="renderTx()">
+        <option value="">Tutti i flag</option>
+        <option value="business">💼 Solo aziendali</option>
+        <option value="travel">🧳 Solo viaggi</option>
+        <option value="nobusiness">Escludi aziendali</option>
+      </select>
       <input type="text" id="filtSearch" placeholder="🔍 Cerca..." oninput="renderTx()">
     </div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
@@ -536,13 +564,31 @@
   </div>
 </main>
 
-<!-- CATEGORY MODAL -->
+<!-- TRANSACTION EDIT MODAL -->
 <div class="modal-bg" id="catModal" onclick="closeCatModal(event)">
   <div class="modal">
-    <h3>Cambia categoria</h3>
-    <div id="modalDesc" style="font-size:13px;color:var(--text2);margin-bottom:12px;"></div>
+    <h3>Modifica transazione</h3>
+    <div id="modalDesc" style="font-size:13px;color:var(--text2);margin-bottom:14px;"></div>
+
+    <div class="mapper-label">💶 Importo</div>
+    <input type="number" step="0.01" id="modalAmount" class="modal-amount" oninput="onModalAmountChange()">
+    <div style="font-size:11px;color:var(--text2);margin-bottom:6px">Usa il segno meno per le spese (es. -42.50), positivo per le entrate.</div>
+
+    <div class="modal-flags">
+      <label class="flag-toggle">
+        <input type="checkbox" id="modalBusiness">
+        <span>💼 Spesa aziendale <span class="ft-sub">— esclusa dal budget, verrà rimborsata</span></span>
+      </label>
+      <label class="flag-toggle">
+        <input type="checkbox" id="modalTravel">
+        <span>🧳 Viaggio <span class="ft-sub">— resta nella sua categoria, aggregata come trasferta</span></span>
+      </label>
+    </div>
+
+    <div class="mapper-label" style="margin-top:14px">🏷️ Categoria</div>
     <div class="modal-cats" id="modalCats"></div>
-    <button class="btn btn-secondary" style="margin-top:12px" onclick="closeCatModal()">Annulla</button>
+    <button class="btn btn-primary" style="margin-top:14px" onclick="saveTxEdit()">💾 Salva</button>
+    <button class="btn btn-secondary" style="margin-top:8px" onclick="closeCatModal()">Annulla</button>
   </div>
 </div>
 
@@ -691,7 +737,6 @@ let colMaps = [{}, {}];
 let pieChartInst = null;
 let barChartInst = null;
 let trendChartInst = null;
-let editingTx = null;
 
 // ─────────────────────────────────────────────
 // INIT
@@ -699,6 +744,9 @@ let editingTx = null;
 function init() {
   if (getDark()) document.documentElement.classList.add('dark');
   updateDarkBtn();
+  // Rimuovi il mese di Dicembre 2025 se presente
+  const all = getAllData();
+  if (all['2025-12']) { delete all['2025-12']; saveAllData(all); }
   populateMonthSel();
   setDefaultImportMonth();
   renderAll();
@@ -733,24 +781,24 @@ function populateMonthSel() {
 }
 
 function addMonth() {
-  // Show a month picker prompt by creating a temporary input
-  const inp = document.createElement('input');
-  inp.type = 'month';
-  inp.style.cssText = 'position:fixed;top:-100px;opacity:0;';
-  document.body.appendChild(inp);
-  inp.onchange = function() {
-    const m = inp.value;
-    document.body.removeChild(inp);
-    if (!m) return;
-    const all = getAllData();
-    if (!all[m]) { all[m] = []; saveAllData(all); }
-    populateMonthSel();
-    document.getElementById('monthSel').value = m;
-    currentMonth = m;
-    renderAll();
-    showToast(`Mese ${fmtMonthLabel(m)} aggiunto`);
-  };
-  inp.click();
+  // Un input month nascosto e cliccato a volte non apre il picker (specie su
+  // iOS): usiamo un prompt, affidabile sia su desktop che su mobile.
+  const def = new Date().toISOString().slice(0,7);
+  const input = prompt('Aggiungi un mese (formato AAAA-MM, es. 2026-07):', def);
+  if (input === null) return;
+  const m = input.trim();
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(m)) {
+    showToast('Formato non valido. Usa AAAA-MM (es. 2026-07)');
+    return;
+  }
+  const all = getAllData();
+  if (!all[m]) { all[m] = []; saveAllData(all); }
+  populateMonthSel();
+  document.getElementById('monthSel').value = m;
+  currentMonth = m;
+  renderAll();
+  renderHistory();
+  showToast(`Mese ${fmtMonthLabel(m)} aggiunto`);
 }
 
 function fmtMonthLabel(m) {
@@ -804,13 +852,31 @@ function updateDarkBtn() {
 // ─────────────────────────────────────────────
 // OVERVIEW
 // ─────────────────────────────────────────────
+// Le spese aziendali (business) verranno rimborsate: sono escluse dal budget
+// personale. Le spese di viaggio invece restano spese reali.
+function isPersonalExpense(t) { return t.amount < 0 && !t.business; }
+function personalExpenseTotal(txs) {
+  return Math.abs(txs.filter(isPersonalExpense).reduce((a,t)=>a+t.amount,0));
+}
+function businessExpenseTotal(txs) {
+  return Math.abs(txs.filter(t=>t.amount<0 && t.business).reduce((a,t)=>a+t.amount,0));
+}
+function travelExpenseTotal(txs) {
+  return Math.abs(txs.filter(t=>t.amount<0 && t.travel).reduce((a,t)=>a+t.amount,0));
+}
+
 function renderOverview() {
   const txs = getMonthData(currentMonth);
-  const expenses = txs.filter(t => t.amount < 0);
+  // "expenses" = solo spese personali (escluse le aziendali da rimborsare)
+  const expenses = txs.filter(isPersonalExpense);
   const incomes  = txs.filter(t => t.amount > 0);
   const totalExp = Math.abs(expenses.reduce((a,t) => a+t.amount, 0));
   const totalInc = incomes.reduce((a,t) => a+t.amount, 0);
   const balance  = totalInc - totalExp;
+  const businessTotal = businessExpenseTotal(txs);
+  const travelTotal   = travelExpenseTotal(txs);
+  const businessCount = txs.filter(t=>t.amount<0 && t.business).length;
+  const travelCount   = txs.filter(t=>t.amount<0 && t.travel).length;
 
   // ── KPI: base ──
   setText('sumIncome',  fmtEur(totalInc));
@@ -844,7 +910,7 @@ function renderOverview() {
   const curIdx  = allKeys.indexOf(currentMonth);
   if (curIdx > 0) {
     const prevMonth = allKeys[curIdx - 1];
-    const prevExp = Math.abs((all[prevMonth]||[]).filter(t=>t.amount<0).reduce((a,t)=>a+t.amount,0));
+    const prevExp = personalExpenseTotal(all[prevMonth]||[]);
     const diff = totalExp - prevExp;
     const pct  = prevExp ? ((diff/prevExp)*100).toFixed(0) : null;
     setText('sumVs', pct !== null ? `${diff>=0?'+':''}${pct}%` : '—');
@@ -855,12 +921,14 @@ function renderOverview() {
 
   // ── Insight chips ──
   const chips = [];
+  if (businessTotal > 0) chips.push(`💼 Da rimborsare: <strong>${fmtEur(businessTotal)}</strong> (${businessCount} spes${businessCount===1?'a':'e'} aziendal${businessCount===1?'e':'i'})`);
+  if (travelTotal > 0)   chips.push(`🧳 Viaggi: <strong>${fmtEur(travelTotal)}</strong> (${travelCount} spes${travelCount===1?'a':'e'})`);
   if (txs.length) {
-    const biggest = expenses.reduce((a,t) => t.amount<a.amount?t:a, expenses[0]);
+    const biggest = expenses.length ? expenses.reduce((a,t) => t.amount<a.amount?t:a, expenses[0]) : null;
     if (biggest) chips.push(`💸 Spesa più alta: <strong>${escHtml(biggest.description.slice(0,30))}</strong> (${fmtEur(biggest.amount)})`);
     const accs = [...new Set(txs.map(t=>t.account).filter(Boolean))];
     accs.forEach(acc => {
-      const accExp = Math.abs(txs.filter(t=>t.account===acc&&t.amount<0).reduce((a,t)=>a+t.amount,0));
+      const accExp = Math.abs(txs.filter(t=>t.account===acc&&isPersonalExpense(t)).reduce((a,t)=>a+t.amount,0));
       chips.push(`🏦 <strong>${escHtml(acc)}</strong>: ${fmtEur(accExp)} spese`);
     });
     const savingsRate = totalInc > 0 ? ((balance/totalInc)*100).toFixed(0) : null;
@@ -883,7 +951,14 @@ function renderOverview() {
     data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: bg2Color, hoverOffset: 6 }] },
     options: {
       responsive: true, maintainAspectRatio: false, cutout: '62%',
-      plugins: { legend: { position:'bottom', labels:{ font:{size:11,family:'Inter'}, color:textColor, boxWidth:12, padding:10 } } },
+      plugins: {
+        legend: { position:'bottom', labels:{ font:{size:11,family:'Inter'}, color:textColor, boxWidth:12, padding:10 } },
+        tooltip: { callbacks: { label: (ctx) => {
+          const val = ctx.parsed;
+          const pct = totalExp > 0 ? ` (${(val/totalExp*100).toFixed(1)}%)` : '';
+          return ` ${ctx.label}: ${fmtEur(val)}${pct}`;
+        } } }
+      },
     }
   });
 
@@ -909,7 +984,7 @@ function renderOverview() {
   const allMonths = allKeys.slice(-6);
   const barLabels = allMonths.map(fmtMonthLabel);
   const barInc = allMonths.map(m=>( all[m]||[]).filter(t=>t.amount>0).reduce((a,t)=>a+t.amount,0));
-  const barExp = allMonths.map(m=>Math.abs((all[m]||[]).filter(t=>t.amount<0).reduce((a,t)=>a+t.amount,0)));
+  const barExp = allMonths.map(m=>personalExpenseTotal(all[m]||[]));
 
   if (barChartInst) barChartInst.destroy();
   barChartInst = new Chart(document.getElementById('barChart').getContext('2d'), {
@@ -923,7 +998,10 @@ function renderOverview() {
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend:{ labels:{ color:textColor, font:{size:11,family:'Inter'}, boxWidth:12 } } },
+      plugins: {
+        legend:{ labels:{ color:textColor, font:{size:11,family:'Inter'}, boxWidth:12 } },
+        tooltip: { callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${fmtEur(ctx.parsed.y)}` } }
+      },
       scales: {
         x: { ticks:{color:textColor, font:{size:11}}, grid:{color:gridColor} },
         y: { ticks:{color:textColor, font:{size:11}, callback:v=>'€'+v.toLocaleString('it')}, grid:{color:gridColor} },
@@ -948,6 +1026,7 @@ function renderTx() {
   const cat = document.getElementById('filtCat').value;
   const acc = document.getElementById('filtAccount').value;
   const type = document.getElementById('filtType').value;
+  const flag = document.getElementById('filtFlag').value;
   const search = document.getElementById('filtSearch').value.toLowerCase();
 
   let filtered = txs.filter(t => {
@@ -955,6 +1034,9 @@ function renderTx() {
     if (acc && t.account !== acc) return false;
     if (type === 'expense' && t.amount >= 0) return false;
     if (type === 'income' && t.amount < 0) return false;
+    if (flag === 'business' && !t.business) return false;
+    if (flag === 'travel' && !t.travel) return false;
+    if (flag === 'nobusiness' && t.business) return false;
     if (search && !t.description.toLowerCase().includes(search)) return false;
     return true;
   }).sort((a,b)=> new Date(b.date)-new Date(a.date));
@@ -971,10 +1053,12 @@ function renderTx() {
       <input type="checkbox" class="tx-check" id="chk-${t.id}"
              onchange="onTxCheck('${t.id}', this)">
       <div class="tx-icon" style="background:${info.pastel||info.color+'33'}">${info.icon}</div>
-      <div class="tx-info" onclick="openCatModal('${t.id}')">
+      <div class="tx-info" onclick="openTxModal('${t.id}')">
         <div class="tx-desc">${escHtml(t.description)}</div>
         <div class="tx-meta">${fmtDate(t.date)} · ${escHtml(t.account||'')}</div>
         <span class="tx-cat-badge" style="background:${info.pastel||info.color+'22'};border-color:${info.color}44">${info.icon} ${info.label} ✏️</span>
+        ${t.business ? '<span class="tx-flag flag-biz">💼 Aziendale</span>' : ''}
+        ${t.travel ? '<span class="tx-flag flag-trip">🧳 Viaggio</span>' : ''}
       </div>
       <div class="tx-right">
         <div class="tx-amount ${isPos?'pos':'neg'}">${isPos?'+':''}${fmtEur(t.amount)}</div>
@@ -1000,35 +1084,76 @@ function updateFilterOptions(txs) {
 // ─────────────────────────────────────────────
 // CATEGORY MODAL
 // ─────────────────────────────────────────────
-function openCatModal(txId) {
+let editingTxId = null;
+let pendingCat = null;
+
+function openTxModal(txId) {
   const txs = getMonthData(currentMonth);
   const tx = txs.find(t=>t.id===txId);
   if (!tx) return;
-  editingTx = tx;
+  editingTxId = txId;
+  pendingCat = tx.category || 'altro';
   document.getElementById('modalDesc').textContent = tx.description;
-  const catsToShow = CATEGORIES.filter(c => c.id !== 'entrate' || tx.amount > 0);
+  document.getElementById('modalAmount').value = Math.round(tx.amount*100)/100;
+  document.getElementById('modalBusiness').checked = !!tx.business;
+  document.getElementById('modalTravel').checked = !!tx.travel;
+  renderModalCats();
+  document.getElementById('catModal').classList.add('open');
+}
+// Retro-compat: alcuni handler potrebbero ancora chiamare openCatModal
+function openCatModal(txId) { openTxModal(txId); }
+
+function renderModalCats() {
+  const amt = parseFloat(String(document.getElementById('modalAmount').value).replace(',','.'));
+  const isIncome = !isNaN(amt) ? amt > 0 : false;
+  // Mostra "Entrate" solo per importi positivi
+  const catsToShow = CATEGORIES.filter(c => c.id !== 'entrate' || isIncome);
   document.getElementById('modalCats').innerHTML = catsToShow.map(c =>
-    `<button class="modal-cat-btn ${tx.category===c.id?'selected':''}" onclick="setTxCat('${txId}','${c.id}')">
+    `<button class="modal-cat-btn ${pendingCat===c.id?'selected':''}" onclick="selectModalCat('${c.id}')">
       ${c.icon} ${c.label}
     </button>`
   ).join('');
-  document.getElementById('catModal').classList.add('open');
 }
 
-function setTxCat(txId, catId) {
+function onModalAmountChange() { renderModalCats(); }
+
+function selectModalCat(catId) {
+  pendingCat = catId;
+  renderModalCats();
+}
+
+function saveTxEdit() {
   const txs = getMonthData(currentMonth);
-  const tx = txs.find(t=>t.id===txId);
-  if (!tx) return;
+  const tx = txs.find(t=>t.id===editingTxId);
+  if (!tx) { closeCatModal(); return; }
+
+  // Importo
+  const raw = String(document.getElementById('modalAmount').value).replace(',','.').trim();
+  const amt = parseFloat(raw);
+  if (raw === '' || isNaN(amt) || amt === 0) {
+    showToast('Inserisci un importo valido (≠ 0)');
+    return;
+  }
+  tx.amount = amt;
+
   const oldCat = tx.category;
-  tx.category = catId;
+  tx.category = pendingCat;
+  tx.business = document.getElementById('modalBusiness').checked;
+  tx.travel   = document.getElementById('modalTravel').checked;
+
   saveMonthData(currentMonth, txs);
-  // Save rule for first 3 words of description
-  const words = tx.description.toLowerCase().split(/\s+/).slice(0,3).join(' ');
-  if (words.length > 3) saveCustomRule(words, catId);
+
+  // Salva la regola di categorizzazione se la categoria è cambiata
+  if (oldCat !== pendingCat) {
+    const words = tx.description.toLowerCase().split(/\s+/).slice(0,3).join(' ');
+    if (words.length > 3) saveCustomRule(words, pendingCat);
+  }
+
   closeCatModal();
   renderTx();
-  if (document.querySelector('.tab.active')?.textContent.includes('Overview')) renderOverview();
-  showToast(`Categoria aggiornata: ${getCatInfo(catId).label}`);
+  renderOverview();
+  renderHistory();
+  showToast('Transazione aggiornata');
 }
 
 let selectedIds = new Set();
@@ -1505,7 +1630,7 @@ function renderHistory() {
 
   grid.innerHTML = months.map(m => {
     const txs = all[m];
-    const exp = Math.abs(txs.filter(t=>t.amount<0).reduce((a,t)=>a+t.amount,0));
+    const exp = personalExpenseTotal(txs);
     return `<div class="month-chip ${m===currentMonth?'active':''}" onclick="jumpToMonth('${m}')">
       <div>${fmtMonthLabel(m)}</div>
       <div style="font-size:11px;color:var(--text2);margin-top:2px">${fmtEur(exp)} spese</div>
@@ -1526,7 +1651,7 @@ function renderHistory() {
         labels: last.map(fmtMonthLabel),
         datasets: [{
           label:'Spese totali',
-          data: last.map(m=>Math.abs(all[m].filter(t=>t.amount<0).reduce((a,t)=>a+t.amount,0))),
+          data: last.map(m=>personalExpenseTotal(all[m])),
           borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,.1)',
           tension:.4, fill:true, pointRadius:4
         },{
@@ -1538,7 +1663,10 @@ function renderHistory() {
       },
       options:{
         responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{ labels:{ color:textColor, font:{size:11}, boxWidth:12 }}},
+        plugins:{
+          legend:{ labels:{ color:textColor, font:{size:11}, boxWidth:12 }},
+          tooltip:{ callbacks:{ label:(ctx)=>` ${ctx.dataset.label}: ${fmtEur(ctx.parsed.y)}` }}
+        },
         scales:{
           x:{ ticks:{color:textColor,font:{size:11}}, grid:{color:gridColor}},
           y:{ ticks:{color:textColor,font:{size:11},callback:v=>'€'+v.toLocaleString('it')}, grid:{color:gridColor}},
