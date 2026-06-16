@@ -185,11 +185,12 @@
   }
   .logo {
     font-family: 'Baloo 2', cursive;
-    font-size: 16px; color: #fff; flex: 1;
+    font-size: 16px; color: #fff;
+    flex: 1 1 0; min-width: 0;
     font-weight: 700;
     letter-spacing: -.2px; line-height: 1;
     text-shadow: 0 2px 8px rgba(0,0,0,.22);
-    white-space: nowrap;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .month-sel {
     appearance: none;
@@ -198,7 +199,7 @@
     padding: 6px 10px; font-size: 13px; font-weight: 600;
     cursor: pointer; font-family: inherit;
     box-shadow: 0 1px 6px rgba(0,0,0,.15);
-    max-width: 130px;
+    flex: 0 0 auto; min-width: 90px; max-width: 140px;
   }
   .month-sel option { color: var(--text); background: var(--bg2); }
   .btn-icon {
@@ -279,6 +280,10 @@
   .kpi-vs        { background: var(--kpi-vs);      color: #fff; }
   .kpi-biz-refund {
     background: linear-gradient(135deg, #5e9a93, #7ab8b0); color: #fff;
+    grid-column: span 2;
+  }
+  .kpi-travel-total {
+    background: linear-gradient(135deg, #7a8c5e, #a8bf7a); color: #fff;
     grid-column: span 2;
   }
   /* CARD */
@@ -432,6 +437,10 @@
   .btn-sel-del { border-color: var(--red); color: var(--red); background: rgba(184,91,72,.12); }
   .btn-sel-del:hover { background: rgba(184,91,72,.22); }
   .dark .btn-sel-del { background: #3B0E0E; }
+  .btn-sel-biz { border-color: #5e9a93; color: #5e9a93; background: rgba(94,154,147,.12); }
+  .btn-sel-biz:hover { background: rgba(94,154,147,.22); }
+  .btn-sel-trip { border-color: #7a8c5e; color: #7a8c5e; background: rgba(122,140,94,.12); }
+  .btn-sel-trip:hover { background: rgba(122,140,94,.22); }
   .tx-check {
     width: 20px; height: 20px; border-radius: 6px; border: 2px solid var(--border);
     flex-shrink: 0; cursor: pointer; appearance: none; background: var(--bg);
@@ -649,6 +658,11 @@
         <div class="kpi-value" id="sumBizRefund">€0</div>
         <div class="kpi-sub" id="subBizRefund">trasferte da rimborsare</div>
       </div>
+      <div class="kpi-card kpi-travel-total" id="kpiTravelTotal" style="display:none">
+        <div class="kpi-label">🧳 Spese viaggio</div>
+        <div class="kpi-value" id="sumTravelTotal">€0</div>
+        <div class="kpi-sub" id="subTravelTotal">spese di viaggio del mese</div>
+      </div>
     </div>
 
     <!-- Insight chips -->
@@ -698,6 +712,8 @@
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
       <div id="txCount" style="font-size:12px;color:var(--text2);flex:1;"></div>
       <button id="btnSelAll" class="btn-sel" onclick="toggleSelectAll()">Seleziona tutto</button>
+      <button id="btnBizSel" class="btn-sel btn-sel-biz" onclick="bulkSetFlag('business',true)" style="display:none">💼 Segna aziendali</button>
+      <button id="btnTripSel" class="btn-sel btn-sel-trip" onclick="bulkSetFlag('travel',true)" style="display:none">🧳 Segna viaggi</button>
       <button id="btnDelSel" class="btn-sel btn-sel-del" onclick="deleteSelected()" style="display:none">🗑️ Elimina selezionati</button>
     </div>
     <div class="tx-list" id="txList"></div>
@@ -1439,6 +1455,18 @@ function renderOverview() {
     if (kpiBizRef) kpiBizRef.style.display = 'none';
   }
 
+  // ── KPI: spese viaggio ──
+  const kpiTravEl = document.getElementById('kpiTravelTotal');
+  if (kpiTravEl) {
+    if (travelTotal > 0) {
+      setText('sumTravelTotal', fmtEur(travelTotal));
+      setText('subTravelTotal', `${travelCount} spes${travelCount===1?'a':'e'} di viaggio`);
+      kpiTravEl.style.display = '';
+    } else {
+      kpiTravEl.style.display = 'none';
+    }
+  }
+
   // ── Insight chips ──
   const chips = [];
   if (businessTotal > 0) chips.push(`💼 Aziendali: <strong>${fmtEur(businessTotal)}</strong> (${businessCount} spes${businessCount===1?'a':'e'}, rimborso atteso)`);
@@ -1714,13 +1742,30 @@ function onTxCheck(txId, chk) {
 
 function updateBulkBar() {
   const btnDel = document.getElementById('btnDelSel');
+  const btnBiz = document.getElementById('btnBizSel');
+  const btnTrip = document.getElementById('btnTripSel');
   const btnSel = document.getElementById('btnSelAll');
   if (!btnDel || !btnSel) return;
   const total = document.querySelectorAll('.tx-check').length;
   const checked = selectedIds.size;
-  btnDel.style.display = checked > 0 ? '' : 'none';
+  const show = checked > 0 ? '' : 'none';
+  btnDel.style.display = show;
+  if (btnBiz) btnBiz.style.display = show;
+  if (btnTrip) btnTrip.style.display = show;
   if (checked > 0) btnDel.textContent = `🗑️ Elimina ${checked} selezionat${checked===1?'a':'e'}`;
   btnSel.textContent = (checked > 0 && checked === total) ? 'Deseleziona tutto' : 'Seleziona tutto';
+}
+
+function bulkSetFlag(field, value) {
+  if (!selectedIds.size) return;
+  const txs = getMonthData(currentMonth);
+  txs.forEach(t => { if (selectedIds.has(t.id)) t[field] = value; });
+  const n = selectedIds.size;
+  setMonthData(currentMonth, txs);
+  selectedIds.clear();
+  renderTx();
+  renderOverview();
+  showToast(`Aggiornate ${n} transazion${n===1?'e':'i'}`);
 }
 
 function toggleSelectAll() {
