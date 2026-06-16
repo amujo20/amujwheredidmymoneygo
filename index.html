@@ -190,8 +190,10 @@
     font-weight: 700;
     letter-spacing: -.2px; line-height: 1;
     text-shadow: 0 2px 8px rgba(0,0,0,.22);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    display: flex; align-items: center; gap: 3px; overflow: hidden;
   }
+  .logo-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .logo-emoji { flex: 0 0 auto; }
   .month-sel {
     appearance: none;
     background: #fff; border: none;
@@ -583,7 +585,7 @@
 </template>
 
 <header>
-  <div class="logo">WhereDidMyMoneyGo <span>💸</span></div>
+  <div class="logo"><span class="logo-text">WhereDidMyMoneyGo</span> <span class="logo-emoji">💸</span></div>
   <select class="month-sel" id="monthSel" onchange="onMonthChange()"></select>
   <button class="btn-icon" onclick="addMonth()" title="Aggiungi mese">＋</button>
   <div class="theme-wrap">
@@ -709,12 +711,14 @@
       </select>
       <input type="text" id="filtSearch" placeholder="🔍 Cerca..." oninput="renderTx()">
     </div>
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
       <div id="txCount" style="font-size:12px;color:var(--text2);flex:1;"></div>
       <button id="btnSelAll" class="btn-sel" onclick="toggleSelectAll()">Seleziona tutto</button>
-      <button id="btnBizSel" class="btn-sel btn-sel-biz" onclick="bulkSetFlag('business',true)" style="display:none">💼 Segna aziendali</button>
-      <button id="btnTripSel" class="btn-sel btn-sel-trip" onclick="bulkSetFlag('travel',true)" style="display:none">🧳 Segna viaggi</button>
-      <button id="btnDelSel" class="btn-sel btn-sel-del" onclick="deleteSelected()" style="display:none">🗑️ Elimina selezionati</button>
+    </div>
+    <div id="bulkBar" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+      <button id="btnBizSel" class="btn-sel btn-sel-biz" onclick="bulkSetFlag('business',true)">💼 Segna aziendali</button>
+      <button id="btnTripSel" class="btn-sel btn-sel-trip" onclick="bulkSetFlag('travel',true)">🧳 Segna viaggi</button>
+      <button id="btnDelSel" class="btn-sel btn-sel-del" onclick="deleteSelected()">🗑️ Elimina selezionati</button>
     </div>
     <div class="tx-list" id="txList"></div>
   </div>
@@ -1741,18 +1745,14 @@ function onTxCheck(txId, chk) {
 }
 
 function updateBulkBar() {
+  const bulkBar = document.getElementById('bulkBar');
   const btnDel = document.getElementById('btnDelSel');
-  const btnBiz = document.getElementById('btnBizSel');
-  const btnTrip = document.getElementById('btnTripSel');
   const btnSel = document.getElementById('btnSelAll');
-  if (!btnDel || !btnSel) return;
+  if (!btnSel) return;
   const total = document.querySelectorAll('.tx-check').length;
   const checked = selectedIds.size;
-  const show = checked > 0 ? '' : 'none';
-  btnDel.style.display = show;
-  if (btnBiz) btnBiz.style.display = show;
-  if (btnTrip) btnTrip.style.display = show;
-  if (checked > 0) btnDel.textContent = `🗑️ Elimina ${checked} selezionat${checked===1?'a':'e'}`;
+  if (bulkBar) bulkBar.style.display = checked > 0 ? 'flex' : 'none';
+  if (btnDel && checked > 0) btnDel.textContent = `🗑️ Elimina ${checked} selezionat${checked===1?'a':'e'}`;
   btnSel.textContent = (checked > 0 && checked === total) ? 'Deseleziona tutto' : 'Seleziona tutto';
 }
 
