@@ -185,10 +185,11 @@
   }
   .logo {
     font-family: 'Baloo 2', cursive;
-    font-size: 20px; color: #fff; flex: 1;
+    font-size: 16px; color: #fff; flex: 1;
     font-weight: 700;
-    letter-spacing: .2px; line-height: 1;
+    letter-spacing: -.2px; line-height: 1;
     text-shadow: 0 2px 8px rgba(0,0,0,.22);
+    white-space: nowrap;
   }
   .month-sel {
     appearance: none;
@@ -270,12 +271,16 @@
   .kpi-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; opacity: .75; }
   .kpi-value { font-size: 20px; font-weight: 800; line-height: 1.15; }
   .kpi-sub   { font-size: 11px; font-weight: 500; opacity: .68; }
-  .kpi-income  { background: var(--kpi-income);  color: #fff; }
-  .kpi-expense { background: var(--kpi-expense); color: #fff; }
-  .kpi-balance { background: var(--kpi-balance); color: #fff; }
-  .kpi-daily   { background: var(--kpi-daily);   color: #fff; }
-  .kpi-top     { background: var(--kpi-top);     color: #fff; }
-  .kpi-vs      { background: var(--kpi-vs);      color: #fff; }
+  .kpi-income    { background: var(--kpi-income);  color: #fff; }
+  .kpi-expense   { background: var(--kpi-expense); color: #fff; }
+  .kpi-balance   { background: var(--kpi-balance); color: #fff; }
+  .kpi-daily     { background: var(--kpi-daily);   color: #fff; }
+  .kpi-top       { background: var(--kpi-top);     color: #fff; }
+  .kpi-vs        { background: var(--kpi-vs);      color: #fff; }
+  .kpi-biz-refund {
+    background: linear-gradient(135deg, #5e9a93, #7ab8b0); color: #fff;
+    grid-column: span 2;
+  }
   /* CARD */
   .card {
     background: rgba(255,255,255,.66);
@@ -582,7 +587,6 @@
       <button class="theme-opt" data-t="vivace" onclick="pickTheme('vivace')"><span class="theme-sw" style="background:linear-gradient(135deg,#E0218A,#FF7A00)"></span>Vivace<span class="theme-check">✓</span></button>
     </div>
   </div>
-  <button class="btn-icon" onclick="toggleDark()" title="Dark mode" id="darkBtn">🌙</button>
 </header>
 
 <nav class="tabs">
@@ -639,6 +643,11 @@
         <div class="kpi-label">vs mese scorso</div>
         <div class="kpi-value" id="sumVs">—</div>
         <div class="kpi-sub" id="subVs">variazione spese</div>
+      </div>
+      <div class="kpi-card kpi-biz-refund" id="kpiBizRefund" style="display:none">
+        <div class="kpi-label">💼 Rimborso in arrivo</div>
+        <div class="kpi-value" id="sumBizRefund">€0</div>
+        <div class="kpi-sub" id="subBizRefund">trasferte da rimborsare</div>
       </div>
     </div>
 
@@ -827,11 +836,11 @@
     <div class="modal-flags">
       <label class="flag-toggle">
         <input type="checkbox" id="modalBusiness">
-        <span>💼 Spesa aziendale <span class="ft-sub">— esclusa dal budget, verrà rimborsata</span></span>
+        <span>💼 Spesa aziendale</span>
       </label>
       <label class="flag-toggle">
         <input type="checkbox" id="modalTravel">
-        <span>🧳 Viaggio <span class="ft-sub">— resta nella sua categoria, aggregata come trasferta</span></span>
+        <span>🧳 Viaggio</span>
       </label>
     </div>
 
@@ -851,7 +860,7 @@
 const CATEGORIES = [
   { id:'alimentari',      label:'Alimentari',           icon:'🛒', color:'#7a9b5e', pastel:'#d6e4c2' },
   { id:'trasporti',       label:'Trasporti',             icon:'🚗', color:'#c98a4b', pastel:'#f0dcbf' },
-  { id:'voli',            label:'Treno / Aereo / Nave',  icon:'✈️', color:'#6e8ca8', pastel:'#cddbe7' },
+  { id:'voli',            label:'Voli',                  icon:'✈️', color:'#6e8ca8', pastel:'#cddbe7' },
   { id:'bollette',        label:'Bollette & Utenze',     icon:'💡', color:'#5e9a93', pastel:'#c4e0dc' },
   { id:'ristoranti',      label:'Ristoranti & Bar',      icon:'🍽️', color:'#c2724a', pastel:'#efcdbb' },
   { id:'shopping',        label:'Shopping',              icon:'🛍️', color:'#a85f6e', pastel:'#e6cbd1' },
@@ -904,11 +913,11 @@ const EXACT_CAT_MAP = {
 
 const KW = {
   alimentari:     ['supermercato','coop','esselunga','lidl','conad','pam ','carrefour','iper','sma','eurospin','penny','aldì','aldi','despar','famila','bennet','spesa','alimentari','frutta','verdura','panetteria','macelleria','pescheria','sigma','naturasì','il gigante'],
-  trasporti:      ['carburante','benzina','diesel','autostrada','pedaggio','parcheggio','parking','trenitalia','italo','taxi','wetaxi','uber','bolt','atm ','atac','amtab','gtt','bus','treno','metro','frecciarossa','frecciargento','motore','freni','officina','revisione','ryanair','easyjet','eni station','q8','total','esso','agip','tamoil','satap','mycicero','mobilita'],
-  voli:           ['aereo','volo','airport','ryanair','easyjet','wizz','alitalia','ita airways','italotreno','italo','treno','nave','traghetto','ferry'],
+  trasporti:      ['carburante','benzina','diesel','autostrada','pedaggio','parcheggio','parking','trenitalia','italo','taxi','wetaxi','uber','bolt','atm ','atac','amtab','gtt','bus','treno','metro','frecciarossa','frecciargento','motore','freni','officina','revisione','nave','traghetto','ferry','eni station','q8','total','esso','agip','tamoil','satap','mycicero','mobilita'],
+  voli:           ['aereo','volo','airport','ryanair','easyjet','wizz','alitalia','ita airways'],
   bollette:       ['enel','eni gas','a2a','hera','iren','acea','tim ','vodafone','wind','fastweb','telecom','tiscali','sky ','luce ','acqua ','bolletta','utenza','condominio','rata mutuo','mutuo','assicurazione','generali','unipol','allianz','zurich','orange italia','tspay'],
   ristoranti:     ['ristorante','pizzeria','bar ','caffè','caffe','cafe','osteria','trattoria','mcdonald','burger king','kfc','sushi','kebab','gyros','mozzarella bar','pizza','pub','risto','grill','delivery','just eat','glovo','deliveroo','foodora','thefork','backbar','vineria'],
-  shopping:       ['amazon','zalando','zara','h&m','primark','ikea','mediaworld','unieuro','decathlon','abbigliamento','scarpe','elettronica','leroy merlin','bricocenter','brico','obi ','coin','ovs','rinascente','feltrinelli','fnac','ebay','aliexpress','shein','asos','pampling','whsmith','tezenis'],
+  shopping:       ['amazon','zalando','zara','h&m','primark','ikea','mediaworld','unieuro','decathlon','abbigliamento','scarpe','elettronica','leroy merlin','bricocenter','brico','obi ','coin','ovs','rinascente','feltrinelli','fnac','ebay','aliexpress','shein','asos','pampling','whsmith','tezenis','vinted'],
   salute:         ['farmacia','dottore','medico','clinica','ospedale','dentista','ottico','oculista','fisioterapia','visita','analisi','laboratorio','parafarmacia','sanitaria'],
   abbonamenti:    ['netflix','spotify','disney','amazon prime','apple ','google ','youtube','dazn','mediaset','paramount','sky sport','abbonamento','membership','icloud'],
   casa:           ['affitto','rent','canone','arredamento','mobili','elettrodomestici','riparazione','idraulico','elettricista','pulizie','giardiniere','amministratore'],
@@ -1281,9 +1290,11 @@ function saveQuickAdd() {
 // ─────────────────────────────────────────────
 // OVERVIEW
 // ─────────────────────────────────────────────
-// Le spese aziendali (business) verranno rimborsate: sono escluse dal budget
-// personale. Le spese di viaggio invece restano spese reali.
+function isExpense(t)         { return t.amount < 0; }
 function isPersonalExpense(t) { return t.amount < 0 && !t.business; }
+function expenseTotal(txs) {
+  return Math.abs(txs.filter(isExpense).reduce((a,t)=>a+t.amount,0));
+}
 function personalExpenseTotal(txs) {
   return Math.abs(txs.filter(isPersonalExpense).reduce((a,t)=>a+t.amount,0));
 }
@@ -1294,11 +1305,29 @@ function travelExpenseTotal(txs) {
   return Math.abs(txs.filter(t=>t.amount<0 && t.travel).reduce((a,t)=>a+t.amount,0));
 }
 
+// Pattern a righe diagonali per le spese aziendali nei grafici
+function hatchPattern(solidColor) {
+  const sz = 8;
+  const c = document.createElement('canvas');
+  c.width = sz; c.height = sz;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = solidColor;
+  ctx.fillRect(0, 0, sz, sz);
+  ctx.strokeStyle = 'rgba(255,255,255,0.52)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, sz);   ctx.lineTo(sz, 0);
+  ctx.moveTo(-sz*.5, sz); ctx.lineTo(sz, -sz*.5);
+  ctx.moveTo(sz*.5, sz*1.5); ctx.lineTo(sz*1.5, sz*.5);
+  ctx.stroke();
+  return document.createElement('canvas').getContext('2d').createPattern(c, 'repeat');
+}
+
 function renderChanges(curCatTotals, prevTxs, prevMonth) {
   const card = document.getElementById('changesCard');
   // Previous month per-category personal-expense totals
   const prevTotals = {};
-  prevTxs.filter(isPersonalExpense).forEach(t => {
+  prevTxs.filter(isExpense).forEach(t => {
     const c = t.category || 'altro';
     prevTotals[c] = (prevTotals[c] || 0) + Math.abs(t.amount);
   });
@@ -1343,10 +1372,10 @@ function renderChanges(curCatTotals, prevTxs, prevMonth) {
 
 function renderOverview() {
   const txs = getMonthData(currentMonth);
-  // "expenses" = solo spese personali (escluse le aziendali da rimborsare)
-  const expenses = txs.filter(isPersonalExpense);
+  // Le spese aziendali sono ora incluse nei totali (verranno rimborsate dallo stipendio)
+  const expenses = txs.filter(isExpense);
   const incomes  = txs.filter(t => t.amount > 0);
-  const totalExp = Math.abs(expenses.reduce((a,t) => a+t.amount, 0));
+  const totalExp = expenseTotal(txs);
   const totalInc = incomes.reduce((a,t) => a+t.amount, 0);
   const balance  = totalInc - totalExp;
   const businessTotal = businessExpenseTotal(txs);
@@ -1370,6 +1399,8 @@ function renderOverview() {
   // ── KPI: categoria top ──
   const catTotals = {};
   expenses.forEach(t => { const c = t.category||'altro'; catTotals[c]=(catTotals[c]||0)+Math.abs(t.amount); });
+  const bizCatTotals = {};
+  txs.filter(t=>t.amount<0&&t.business).forEach(t => { const c=t.category||'altro'; bizCatTotals[c]=(bizCatTotals[c]||0)+Math.abs(t.amount); });
   const sorted = Object.entries(catTotals).sort((a,b)=>b[1]-a[1]);
   if (sorted.length) {
     const [topId, topAmt] = sorted[0];
@@ -1384,29 +1415,40 @@ function renderOverview() {
   const all = getAllData();
   const allKeys = Object.keys(all).sort();
   const curIdx  = allKeys.indexOf(currentMonth);
+  const kpiBizRef = document.getElementById('kpiBizRefund');
   if (curIdx > 0) {
     const prevMonth = allKeys[curIdx - 1];
-    const prevExp = personalExpenseTotal(all[prevMonth]||[]);
+    const prevExp = expenseTotal(all[prevMonth]||[]);
     const diff = totalExp - prevExp;
     const pct  = prevExp ? ((diff/prevExp)*100).toFixed(0) : null;
     setText('sumVs', pct !== null ? `${diff>=0?'+':''}${pct}%` : '—');
     setText('subVs', prevExp ? `${diff>=0?'↑ più di':'↓ meno di'} ${fmtMonthLabel(prevMonth)}` : 'nessun dato precedente');
     renderChanges(catTotals, all[prevMonth]||[], prevMonth);
+    // KPI rimborso: spese aziendali del mese precedente attese in busta paga questo mese
+    const prevBiz = businessExpenseTotal(all[prevMonth]||[]);
+    if (prevBiz > 0 && kpiBizRef) {
+      setText('sumBizRefund', fmtEur(prevBiz));
+      setText('subBizRefund', `trasferte di ${fmtMonthLabel(prevMonth)}`);
+      kpiBizRef.style.display = '';
+    } else if (kpiBizRef) {
+      kpiBizRef.style.display = 'none';
+    }
   } else {
     setText('sumVs', '—'); setText('subVs', 'primo mese registrato');
     document.getElementById('changesCard').style.display = 'none';
+    if (kpiBizRef) kpiBizRef.style.display = 'none';
   }
 
   // ── Insight chips ──
   const chips = [];
-  if (businessTotal > 0) chips.push(`💼 Da rimborsare: <strong>${fmtEur(businessTotal)}</strong> (${businessCount} spes${businessCount===1?'a':'e'} aziendal${businessCount===1?'e':'i'})`);
+  if (businessTotal > 0) chips.push(`💼 Aziendali: <strong>${fmtEur(businessTotal)}</strong> (${businessCount} spes${businessCount===1?'a':'e'}, rimborso atteso)`);
   if (travelTotal > 0)   chips.push(`🧳 Viaggi: <strong>${fmtEur(travelTotal)}</strong> (${travelCount} spes${travelCount===1?'a':'e'})`);
   if (txs.length) {
     const biggest = expenses.length ? expenses.reduce((a,t) => t.amount<a.amount?t:a, expenses[0]) : null;
     if (biggest) chips.push(`💸 Spesa più alta: <strong>${escHtml(biggest.description.slice(0,30))}</strong> (${fmtEur(biggest.amount)})`);
     const accs = [...new Set(txs.map(t=>t.account).filter(Boolean))];
     accs.forEach(acc => {
-      const accExp = Math.abs(txs.filter(t=>t.account===acc&&isPersonalExpense(t)).reduce((a,t)=>a+t.amount,0));
+      const accExp = Math.abs(txs.filter(t=>t.account===acc&&isExpense(t)).reduce((a,t)=>a+t.amount,0));
       chips.push(`🏦 <strong>${escHtml(acc)}</strong>: ${fmtEur(accExp)} spese`);
     });
     const savingsRate = totalInc > 0 ? ((balance/totalInc)*100).toFixed(0) : null;
@@ -1416,10 +1458,30 @@ function renderOverview() {
   insightEl.innerHTML = chips.map(c=>`<div class="insight-chip">${c}</div>`).join('');
 
   // ── Pie chart ──
-  const labels = sorted.map(([c])=>getCatInfo(c).icon+' '+getCatInfo(c).label);
-  const data   = sorted.map(([,v])=>v);
-  // Colori derivati dal tema attivo (fallback ai colori fissi delle categorie)
-  const colors = themeChartColors(sorted.length) || sorted.map(([c])=>getCatInfo(c).color);
+  // Colori per categoria (uno per categoria, indipendente dalla quota biz)
+  const themeColors = themeChartColors(sorted.length) || sorted.map(([c])=>getCatInfo(c).color);
+  const catColors = {};
+  sorted.forEach(([c], i) => { catColors[c] = themeColors[i]; });
+
+  // Costruiamo le fette: personal (solido) + business (tratteggiato) per ogni categoria
+  const pieLabels = [], pieData = [], pieBgColors = [];
+  sorted.forEach(([c, v]) => {
+    const info = getCatInfo(c);
+    const bizAmt  = bizCatTotals[c] || 0;
+    const persAmt = v - bizAmt;
+    const col = catColors[c];
+    if (persAmt > 0.01) {
+      pieLabels.push(info.icon + ' ' + info.label);
+      pieData.push(persAmt);
+      pieBgColors.push(col);
+    }
+    if (bizAmt > 0.01) {
+      pieLabels.push(info.icon + ' ' + info.label + ' 💼');
+      pieData.push(bizAmt);
+      pieBgColors.push(hatchPattern(col));
+    }
+  });
+
   const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text').trim();
   const bg2Color  = getComputedStyle(document.documentElement).getPropertyValue('--bg2').trim();
   const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
@@ -1427,7 +1489,7 @@ function renderOverview() {
   if (pieChartInst) pieChartInst.destroy();
   pieChartInst = new Chart(document.getElementById('pieChart').getContext('2d'), {
     type: 'doughnut',
-    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: bg2Color, hoverOffset: 6 }] },
+    data: { labels:pieLabels, datasets: [{ data:pieData, backgroundColor:pieBgColors, borderWidth: 2, borderColor: bg2Color, hoverOffset: 6 }] },
     options: {
       responsive: true, maintainAspectRatio: false, cutout: '62%',
       plugins: {
@@ -1442,17 +1504,18 @@ function renderOverview() {
   });
 
   // ── Cat list ──
-  const maxVal = data[0] || 1;
+  const maxVal = (sorted[0]?.[1]) || 1;
   const catEl  = document.getElementById('catList');
   if (!sorted.length) { catEl.innerHTML = '<div class="no-data">Nessuna spesa trovata</div>'; }
   else {
-    catEl.innerHTML = sorted.map(([c,v], i) => {
+    catEl.innerHTML = sorted.map(([c,v]) => {
       const info = getCatInfo(c);
-      const col  = colors[i] || info.color;
+      const col  = catColors[c] || info.color;
+      const bizAmt = bizCatTotals[c] || 0;
       const pct  = totalExp > 0 ? (v/totalExp*100).toFixed(1) : '0';
       return `<div class="cat-row">
         <div class="cat-dot" style="background:${col}"></div>
-        <div class="cat-name">${info.icon} ${info.label}</div>
+        <div class="cat-name">${info.icon} ${info.label}${bizAmt>0?' 💼':''}</div>
         <div class="cat-bar-wrap"><div class="cat-bar" style="width:${(v/maxVal*100).toFixed(1)}%;background:${col}"></div></div>
         <div class="cat-amt">${fmtEur(v)}</div>
         <div style="font-size:11px;color:var(--text2);min-width:36px;text-align:right">${pct}%</div>
@@ -1462,9 +1525,11 @@ function renderOverview() {
 
   // ── Bar chart ──
   const allMonths = allKeys.slice(-6);
-  const barLabels = allMonths.map(fmtMonthLabel);
-  const barInc = allMonths.map(m=>( all[m]||[]).filter(t=>t.amount>0).reduce((a,t)=>a+t.amount,0));
-  const barExp = allMonths.map(m=>personalExpenseTotal(all[m]||[]));
+  const barLabels  = allMonths.map(fmtMonthLabel);
+  const barInc     = allMonths.map(m => (all[m]||[]).filter(t=>t.amount>0).reduce((a,t)=>a+t.amount,0));
+  const barPersonal = allMonths.map(m => personalExpenseTotal(all[m]||[]));
+  const barBiz      = allMonths.map(m => businessExpenseTotal(all[m]||[]));
+  const redColor    = themeColorVar('--red', 1);
 
   if (barChartInst) barChartInst.destroy();
   barChartInst = new Chart(document.getElementById('barChart').getContext('2d'), {
@@ -1472,8 +1537,9 @@ function renderOverview() {
     data: {
       labels: barLabels,
       datasets: [
-        { label:'Entrate', data:barInc, backgroundColor:themeColorVar('--green',.82), borderRadius:8 },
-        { label:'Spese',   data:barExp, backgroundColor:themeColorVar('--red',.82),   borderRadius:8 },
+        { label:'Entrate',   data:barInc,      backgroundColor:themeColorVar('--green',.82), borderRadius:8 },
+        { label:'Spese',     data:barPersonal, backgroundColor:themeColorVar('--red',.82),   borderRadius:6, stack:'exp' },
+        { label:'Aziendali', data:barBiz,      backgroundColor:hatchPattern(redColor),       borderRadius:6, stack:'exp' },
       ]
     },
     options: {
@@ -1483,8 +1549,8 @@ function renderOverview() {
         tooltip: { callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${fmtEur(ctx.parsed.y)}` } }
       },
       scales: {
-        x: { ticks:{color:textColor, font:{size:11}}, grid:{color:gridColor} },
-        y: { ticks:{color:textColor, font:{size:11}, callback:v=>'€'+v.toLocaleString('it')}, grid:{color:gridColor} },
+        x: { stacked:true, ticks:{color:textColor, font:{size:11}}, grid:{color:gridColor} },
+        y: { stacked:true, ticks:{color:textColor, font:{size:11}, callback:v=>'€'+v.toLocaleString('it')}, grid:{color:gridColor} },
       }
     }
   });
@@ -2111,7 +2177,7 @@ function renderHistory() {
 
   grid.innerHTML = months.map(m => {
     const txs = all[m];
-    const exp = personalExpenseTotal(txs);
+    const exp = expenseTotal(txs);
     return `<div class="month-chip ${m===currentMonth?'active':''}" onclick="jumpToMonth('${m}')">
       <div>${fmtMonthLabel(m)}</div>
       <div style="font-size:11px;color:var(--text2);margin-top:2px">${fmtEur(exp)} spese</div>
@@ -2132,7 +2198,7 @@ function renderHistory() {
         labels: last.map(fmtMonthLabel),
         datasets: [{
           label:'Spese totali',
-          data: last.map(m=>personalExpenseTotal(all[m])),
+          data: last.map(m=>expenseTotal(all[m])),
           borderColor:themeColorVar('--red'), backgroundColor:themeColorVar('--red',.12),
           tension:.4, fill:true, pointRadius:4
         },{
