@@ -195,13 +195,12 @@
   .logo-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .logo-emoji { flex: 0 0 auto; }
   .month-sel {
-    appearance: none;
     background: #fff; border: none;
     color: var(--accent); border-radius: 10px;
     padding: 6px 10px; font-size: 13px; font-weight: 600;
     cursor: pointer; font-family: inherit;
     box-shadow: 0 1px 6px rgba(0,0,0,.15);
-    flex: 0 0 auto; min-width: 90px; max-width: 140px;
+    flex: 0 0 auto; min-width: 90px; max-width: 150px;
   }
   .month-sel option { color: var(--text); background: var(--bg2); }
   .btn-icon {
@@ -715,10 +714,10 @@
       <div id="txCount" style="font-size:12px;color:var(--text2);flex:1;"></div>
       <button id="btnSelAll" class="btn-sel" onclick="toggleSelectAll()">Seleziona tutto</button>
     </div>
-    <div id="bulkBar" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
-      <button id="btnBizSel" class="btn-sel btn-sel-biz" onclick="bulkSetFlag('business',true)">💼 Segna aziendali</button>
-      <button id="btnTripSel" class="btn-sel btn-sel-trip" onclick="bulkSetFlag('travel',true)">🧳 Segna viaggi</button>
-      <button id="btnDelSel" class="btn-sel btn-sel-del" onclick="deleteSelected()">🗑️ Elimina selezionati</button>
+    <div id="bulkBar" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:8px;width:100%;box-sizing:border-box;">
+      <button id="btnBizSel" class="btn-sel btn-sel-biz" onclick="bulkSetFlag('business',true)" style="flex:1 1 auto;">💼 Segna aziendali</button>
+      <button id="btnTripSel" class="btn-sel btn-sel-trip" onclick="bulkSetFlag('travel',true)" style="flex:1 1 auto;">🧳 Segna viaggi</button>
+      <button id="btnDelSel" class="btn-sel btn-sel-del" onclick="deleteSelected()" style="flex:1 1 auto;">🗑️ Elimina</button>
     </div>
     <div class="tx-list" id="txList"></div>
   </div>
@@ -1035,7 +1034,8 @@ function init() {
 
 function populateMonthSel() {
   const sel = document.getElementById('monthSel');
-  const prev = sel.value || currentMonth;
+  const saved = localStorage.getItem('spesemese_curmonth');
+  const prev = sel.value || currentMonth || saved || '';
 
   // Build the full range: 2026-01 → today
   const start = new Date(2026, 0, 1);
@@ -1058,6 +1058,7 @@ function populateMonthSel() {
   // Restore previous selection if still in list, otherwise default to first
   if (all.includes(prev)) sel.value = prev;
   currentMonth = sel.value;
+  localStorage.setItem('spesemese_curmonth', currentMonth);
 }
 
 function addMonth() {
@@ -1107,6 +1108,7 @@ function switchTab(id, btn) {
 
 function onMonthChange() {
   currentMonth = document.getElementById('monthSel').value;
+  localStorage.setItem('spesemese_curmonth', currentMonth);
   renderAll();
 }
 
