@@ -580,21 +580,21 @@
     border-radius: var(--radius); padding: 16px 14px; color: #fff;
     box-shadow: 0 4px 16px rgba(0,0,0,.18);
   }
-  .inv-pac     { background: linear-gradient(135deg, #3a7bd5, #5b9bd5); }
-  .inv-pension { background: linear-gradient(135deg, #6a3fa0, #9b59b6); }
+  .inv-pac     { background: var(--kpi-top); }
+  .inv-pension { background: var(--kpi-vs); }
   .inv-total-label { font-size: 11px; font-weight: 700; opacity: .82; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
   .inv-total-value { font-size: 26px; font-weight: 800; font-family: 'Baloo 2', cursive; line-height: 1; }
   .inv-total-sub   { font-size: 11px; opacity: .75; margin-top: 5px; }
   .inv-start-row   { margin-bottom: 14px; }
   .inv-entry-form  { margin-bottom: 10px; }
   .inv-label { font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; display: block; margin-bottom: 6px; }
-  .inv-input-row   { display: flex; gap: 8px; align-items: center; }
+  .inv-input-row   { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
   .inv-input {
-    flex: 1; padding: 9px 12px; border-radius: 10px;
+    flex: 1 1 120px; padding: 9px 12px; border-radius: 10px;
     border: 1.5px solid var(--border); background: var(--bg2); color: var(--text);
-    font-size: 14px; font-family: inherit; min-width: 0;
+    font-size: 14px; font-family: inherit; min-width: 0; box-sizing: border-box;
   }
-  .inv-save-btn { flex: 0 0 auto; padding: 9px 16px; font-size: 14px; border-radius: 10px; }
+  .inv-save-btn { flex: 0 0 auto; padding: 9px 20px; font-size: 14px; border-radius: 10px; width: 100%; box-sizing: border-box; }
   .inv-entries { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
   .inv-entry {
     display: flex; align-items: center; gap: 10px;
@@ -864,16 +864,16 @@
         <label class="inv-label">Saldo iniziale (punto di partenza)</label>
         <div class="inv-input-row">
           <input type="number" id="pacInitial" class="inv-input" placeholder="0,00" step="0.01" min="0">
-          <button class="btn btn-primary inv-save-btn" onclick="saveInvInitial('pac')">Salva</button>
         </div>
+        <button class="btn btn-primary inv-save-btn" onclick="saveInvInitial('pac')" style="margin-top:8px">Salva saldo iniziale</button>
       </div>
       <div class="inv-entry-form">
         <label class="inv-label">Aggiungi versamento</label>
         <div class="inv-input-row">
           <input type="month" id="pacMonth" class="inv-input">
           <input type="number" id="pacAmount" class="inv-input" placeholder="Importo €" step="0.01" min="0">
-          <button class="btn btn-primary inv-save-btn" onclick="addInvEntry('pac')">＋</button>
         </div>
+        <button class="btn btn-primary inv-save-btn" onclick="addInvEntry('pac')" style="margin-top:8px">＋ Aggiungi versamento</button>
       </div>
       <div class="inv-entries" id="pacEntries"></div>
     </div>
@@ -885,16 +885,16 @@
         <label class="inv-label">Saldo iniziale (punto di partenza)</label>
         <div class="inv-input-row">
           <input type="number" id="penInitial" class="inv-input" placeholder="0,00" step="0.01" min="0">
-          <button class="btn btn-primary inv-save-btn" onclick="saveInvInitial('pen')">Salva</button>
         </div>
+        <button class="btn btn-primary inv-save-btn" onclick="saveInvInitial('pen')" style="margin-top:8px">Salva saldo iniziale</button>
       </div>
       <div class="inv-entry-form">
         <label class="inv-label">Aggiungi versamento</label>
         <div class="inv-input-row">
           <input type="month" id="penMonth" class="inv-input">
           <input type="number" id="penAmount" class="inv-input" placeholder="Importo €" step="0.01" min="0">
-          <button class="btn btn-primary inv-save-btn" onclick="addInvEntry('pen')">＋</button>
         </div>
+        <button class="btn btn-primary inv-save-btn" onclick="addInvEntry('pen')" style="margin-top:8px">＋ Aggiungi versamento</button>
       </div>
       <div class="inv-entries" id="penEntries"></div>
     </div>
