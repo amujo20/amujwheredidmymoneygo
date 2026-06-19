@@ -196,11 +196,11 @@
   .logo-emoji { flex: 0 0 auto; }
   .month-sel {
     background: #fff; border: none;
-    color: var(--accent); border-radius: 10px;
-    padding: 6px 10px; font-size: 13px; font-weight: 600;
+    color: #333; border-radius: 10px;
+    padding: 6px 6px; font-size: 12px; font-weight: 600;
     cursor: pointer; font-family: inherit;
     box-shadow: 0 1px 6px rgba(0,0,0,.15);
-    flex: 0 0 auto; min-width: 90px; max-width: 150px;
+    flex: 0 0 auto; min-width: 80px; max-width: 110px;
   }
   .month-sel option { color: var(--text); background: var(--bg2); }
   .btn-icon {
@@ -610,6 +610,11 @@
     flex: 0 0 auto;
   }
   .inv-empty { font-size: 13px; color: var(--text2); text-align: center; padding: 12px 0; }
+  .inv-charts-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .inv-chart-block {}
+  .inv-chart-label { font-size: 10px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+  .inv-chart-empty { font-size: 12px; color: var(--text2); text-align: center; padding: 50px 0; }
+  @media (max-width: 400px) { .inv-charts-wrap { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -860,6 +865,16 @@
     <!-- PAC -->
     <div class="card">
       <div class="card-title">📈 PAC — Piano di Accumulo</div>
+      <div class="inv-charts-wrap">
+        <div class="inv-chart-block">
+          <div class="inv-chart-label">Andamento cumulativo</div>
+          <div class="chart-wrap" style="height:160px"><canvas id="pacLineChart"></canvas></div>
+        </div>
+        <div class="inv-chart-block">
+          <div class="inv-chart-label">Versamenti mensili</div>
+          <div class="chart-wrap" style="height:160px"><canvas id="pacBarChart"></canvas></div>
+        </div>
+      </div>
       <div class="inv-start-row">
         <label class="inv-label">Saldo iniziale (punto di partenza)</label>
         <div class="inv-input-row">
@@ -881,6 +896,16 @@
     <!-- FONDO PENSIONE -->
     <div class="card">
       <div class="card-title">🛡️ Fondo Pensione</div>
+      <div class="inv-charts-wrap">
+        <div class="inv-chart-block">
+          <div class="inv-chart-label">Andamento cumulativo</div>
+          <div class="chart-wrap" style="height:160px"><canvas id="penLineChart"></canvas></div>
+        </div>
+        <div class="inv-chart-block">
+          <div class="inv-chart-label">Versamenti mensili</div>
+          <div class="chart-wrap" style="height:160px"><canvas id="penBarChart"></canvas></div>
+        </div>
+      </div>
       <div class="inv-start-row">
         <label class="inv-label">Saldo iniziale (punto di partenza)</label>
         <div class="inv-input-row">
@@ -2553,9 +2578,111 @@ function initInvest() {
   renderInvest();
 }
 
+let invCharts = {};
+
 function renderInvest() {
-  renderInvCard('pac',  'pacInitial', 'pacEntries', 'invPacTotal', 'invPacSub');
-  renderInvCard('pen',  'penInitial', 'penEntries', 'invPenTotal', 'invPenSub');
+  renderInvCard('pac', 'pacInitial', 'pacEntries', 'invPacTotal', 'invPacSub');
+  renderInvCard('pen', 'penInitial', 'penEntries', 'invPenTotal', 'invPenSub');
+  renderInvCharts('pac', 'pacLineChart', 'pacBarChart');
+  renderInvCharts('pen', 'penLineChart', 'penBarChart');
+}
+
+function renderInvCharts(key, lineId, barId) {
+  const inv = getInv(key);
+  const sorted = [...inv.entries].sort((a,b) => a.month.localeCompare(b.month));
+
+  // Build cumulative line data
+  const labels = sorted.map(e => fmtInvMonth(e.month));
+  const cumulative = [];
+  let running = inv.initial || 0;
+  sorted.forEach(e => { running += e.amount; cumulative.push(running); });
+
+  // If initial only, still show a single point
+  if (sorted.length === 0 && inv.initial > 0) {
+    labels.push('Inizio');
+    cumulative.push(inv.initial);
+  }
+
+  const barAmounts = sorted.map(e => e.amount);
+
+  // Resolve theme color
+  const cs = getComputedStyle(document.documentElement);
+  const colorVar = key === 'pac' ? '--kpi-top' : '--kpi-vs';
+  // Extract first color from gradient for solid use
+  const gradStr = cs.getPropertyValue(colorVar).trim();
+  const hexMatch = gradStr.match(/#[0-9a-fA-F]{3,6}/g);
+  const c1 = hexMatch ? hexMatch[0] : '#5b9bd5';
+  const c2 = hexMatch && hexMatch[1] ? hexMatch[1] : c1;
+
+  const empty = labels.length === 0;
+
+  // Line chart
+  if (invCharts[lineId]) { invCharts[lineId].destroy(); delete invCharts[lineId]; }
+  const lineCtx = document.getElementById(lineId);
+  if (lineCtx) {
+    if (empty) {
+      lineCtx.parentElement.innerHTML = '<div class="inv-chart-empty">Aggiungi versamenti per vedere il grafico</div>';
+    } else {
+      invCharts[lineId] = new Chart(lineCtx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            data: cumulative,
+            borderColor: c1,
+            backgroundColor: c1 + '22',
+            fill: true,
+            tension: 0.35,
+            pointRadius: cumulative.length < 8 ? 4 : 2,
+            pointBackgroundColor: c1,
+            borderWidth: 2,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: {
+            callbacks: { label: ctx => ' ' + fmtEur(ctx.parsed.y) }
+          }},
+          scales: {
+            x: { ticks: { font: { size: 10 }, color: cs.getPropertyValue('--text2').trim(), maxRotation: 45 }, grid: { display: false } },
+            y: { ticks: { font: { size: 10 }, color: cs.getPropertyValue('--text2').trim(), callback: v => '€' + (v>=1000?(v/1000).toFixed(1)+'k':v) }, grid: { color: cs.getPropertyValue('--border').trim() } }
+          }
+        }
+      });
+    }
+  }
+
+  // Bar chart
+  if (invCharts[barId]) { invCharts[barId].destroy(); delete invCharts[barId]; }
+  const barCtx = document.getElementById(barId);
+  if (barCtx) {
+    if (empty) {
+      barCtx.parentElement.innerHTML = '<div class="inv-chart-empty">Aggiungi versamenti per vedere il grafico</div>';
+    } else {
+      invCharts[barId] = new Chart(barCtx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            data: barAmounts,
+            backgroundColor: c2 + 'cc',
+            borderRadius: 6,
+            borderSkipped: false,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: {
+            callbacks: { label: ctx => ' ' + fmtEur(ctx.parsed.y) }
+          }},
+          scales: {
+            x: { ticks: { font: { size: 10 }, color: cs.getPropertyValue('--text2').trim(), maxRotation: 45 }, grid: { display: false } },
+            y: { ticks: { font: { size: 10 }, color: cs.getPropertyValue('--text2').trim(), callback: v => '€' + (v>=1000?(v/1000).toFixed(1)+'k':v) }, grid: { color: cs.getPropertyValue('--border').trim() } }
+          }
+        }
+      });
+    }
+  }
 }
 
 function renderInvCard(key, initialId, listId, totalId, subId) {
