@@ -190,16 +190,17 @@
     font-weight: 700;
     letter-spacing: -.2px; line-height: 1;
     text-shadow: 0 2px 8px rgba(0,0,0,.22);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    display: flex; align-items: center; gap: 3px; overflow: hidden;
   }
+  .logo-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .logo-emoji { flex: 0 0 auto; }
   .month-sel {
-    appearance: none;
     background: #fff; border: none;
     color: var(--accent); border-radius: 10px;
     padding: 6px 10px; font-size: 13px; font-weight: 600;
     cursor: pointer; font-family: inherit;
     box-shadow: 0 1px 6px rgba(0,0,0,.15);
-    flex: 0 0 auto; min-width: 90px; max-width: 140px;
+    flex: 0 0 auto; min-width: 90px; max-width: 150px;
   }
   .month-sel option { color: var(--text); background: var(--bg2); }
   .btn-icon {
@@ -571,6 +572,44 @@
     .kpi-grid { grid-template-columns: repeat(6, 1fr); }
     main { padding: 20px 24px 40px; }
   }
+  /* ── INVESTIMENTI ── */
+  .inv-totals {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;
+  }
+  .inv-total-card {
+    border-radius: var(--radius); padding: 16px 14px; color: #fff;
+    box-shadow: 0 4px 16px rgba(0,0,0,.18);
+  }
+  .inv-pac     { background: linear-gradient(135deg, #3a7bd5, #5b9bd5); }
+  .inv-pension { background: linear-gradient(135deg, #6a3fa0, #9b59b6); }
+  .inv-total-label { font-size: 11px; font-weight: 700; opacity: .82; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+  .inv-total-value { font-size: 26px; font-weight: 800; font-family: 'Baloo 2', cursive; line-height: 1; }
+  .inv-total-sub   { font-size: 11px; opacity: .75; margin-top: 5px; }
+  .inv-start-row   { margin-bottom: 14px; }
+  .inv-entry-form  { margin-bottom: 10px; }
+  .inv-label { font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; display: block; margin-bottom: 6px; }
+  .inv-input-row   { display: flex; gap: 8px; align-items: center; }
+  .inv-input {
+    flex: 1; padding: 9px 12px; border-radius: 10px;
+    border: 1.5px solid var(--border); background: var(--bg2); color: var(--text);
+    font-size: 14px; font-family: inherit; min-width: 0;
+  }
+  .inv-save-btn { flex: 0 0 auto; padding: 9px 16px; font-size: 14px; border-radius: 10px; }
+  .inv-entries { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+  .inv-entry {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 12px;
+    background: var(--bg3); font-size: 14px;
+  }
+  .inv-entry-month  { flex: 1; font-weight: 600; color: var(--text); }
+  .inv-entry-amount { font-weight: 700; color: var(--accent); }
+  .inv-entry-del {
+    width: 28px; height: 28px; border-radius: 8px; border: none;
+    background: rgba(184,91,72,.12); color: var(--red); cursor: pointer;
+    font-size: 14px; display: flex; align-items: center; justify-content: center;
+    flex: 0 0 auto;
+  }
+  .inv-empty { font-size: 13px; color: var(--text2); text-align: center; padding: 12px 0; }
 </style>
 </head>
 <body>
@@ -583,7 +622,7 @@
 </template>
 
 <header>
-  <div class="logo">WhereDidMyMoneyGo <span>💸</span></div>
+  <div class="logo"><span class="logo-text">WhereDidMyMoneyGo</span> <span class="logo-emoji">💸</span></div>
   <select class="month-sel" id="monthSel" onchange="onMonthChange()"></select>
   <button class="btn-icon" onclick="addMonth()" title="Aggiungi mese">＋</button>
   <div class="theme-wrap">
@@ -614,6 +653,10 @@
   <button class="tab" onclick="switchTab('history',this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
     Storico
+  </button>
+  <button class="tab" onclick="switchTab('invest',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+    Investimenti
   </button>
 </nav>
 
@@ -709,12 +752,14 @@
       </select>
       <input type="text" id="filtSearch" placeholder="🔍 Cerca..." oninput="renderTx()">
     </div>
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
       <div id="txCount" style="font-size:12px;color:var(--text2);flex:1;"></div>
       <button id="btnSelAll" class="btn-sel" onclick="toggleSelectAll()">Seleziona tutto</button>
-      <button id="btnBizSel" class="btn-sel btn-sel-biz" onclick="bulkSetFlag('business',true)" style="display:none">💼 Segna aziendali</button>
-      <button id="btnTripSel" class="btn-sel btn-sel-trip" onclick="bulkSetFlag('travel',true)" style="display:none">🧳 Segna viaggi</button>
-      <button id="btnDelSel" class="btn-sel btn-sel-del" onclick="deleteSelected()" style="display:none">🗑️ Elimina selezionati</button>
+    </div>
+    <div id="bulkBar" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:8px;width:100%;box-sizing:border-box;">
+      <button id="btnBizSel" class="btn-sel btn-sel-biz" onclick="bulkSetFlag('business',true)" style="flex:1 1 auto;">💼 Segna aziendali</button>
+      <button id="btnTripSel" class="btn-sel btn-sel-trip" onclick="bulkSetFlag('travel',true)" style="flex:1 1 auto;">🧳 Segna viaggi</button>
+      <button id="btnDelSel" class="btn-sel btn-sel-del" onclick="deleteSelected()" style="flex:1 1 auto;">🗑️ Elimina</button>
     </div>
     <div class="tx-list" id="txList"></div>
   </div>
@@ -794,6 +839,68 @@
       </p>
     </div>
   </div>
+
+  <!-- INVESTIMENTI -->
+  <div class="section" id="sec-invest">
+
+    <!-- Totali -->
+    <div class="inv-totals">
+      <div class="inv-total-card inv-pac">
+        <div class="inv-total-label">📈 PAC</div>
+        <div class="inv-total-value" id="invPacTotal">€0</div>
+        <div class="inv-total-sub" id="invPacSub">nessun versamento</div>
+      </div>
+      <div class="inv-total-card inv-pension">
+        <div class="inv-total-label">🛡️ Fondo Pensione</div>
+        <div class="inv-total-value" id="invPenTotal">€0</div>
+        <div class="inv-total-sub" id="invPenSub">nessun versamento</div>
+      </div>
+    </div>
+
+    <!-- PAC -->
+    <div class="card">
+      <div class="card-title">📈 PAC — Piano di Accumulo</div>
+      <div class="inv-start-row">
+        <label class="inv-label">Saldo iniziale (punto di partenza)</label>
+        <div class="inv-input-row">
+          <input type="number" id="pacInitial" class="inv-input" placeholder="0,00" step="0.01" min="0">
+          <button class="btn btn-primary inv-save-btn" onclick="saveInvInitial('pac')">Salva</button>
+        </div>
+      </div>
+      <div class="inv-entry-form">
+        <label class="inv-label">Aggiungi versamento</label>
+        <div class="inv-input-row">
+          <input type="month" id="pacMonth" class="inv-input">
+          <input type="number" id="pacAmount" class="inv-input" placeholder="Importo €" step="0.01" min="0">
+          <button class="btn btn-primary inv-save-btn" onclick="addInvEntry('pac')">＋</button>
+        </div>
+      </div>
+      <div class="inv-entries" id="pacEntries"></div>
+    </div>
+
+    <!-- FONDO PENSIONE -->
+    <div class="card">
+      <div class="card-title">🛡️ Fondo Pensione</div>
+      <div class="inv-start-row">
+        <label class="inv-label">Saldo iniziale (punto di partenza)</label>
+        <div class="inv-input-row">
+          <input type="number" id="penInitial" class="inv-input" placeholder="0,00" step="0.01" min="0">
+          <button class="btn btn-primary inv-save-btn" onclick="saveInvInitial('pen')">Salva</button>
+        </div>
+      </div>
+      <div class="inv-entry-form">
+        <label class="inv-label">Aggiungi versamento</label>
+        <div class="inv-input-row">
+          <input type="month" id="penMonth" class="inv-input">
+          <input type="number" id="penAmount" class="inv-input" placeholder="Importo €" step="0.01" min="0">
+          <button class="btn btn-primary inv-save-btn" onclick="addInvEntry('pen')">＋</button>
+        </div>
+      </div>
+      <div class="inv-entries" id="penEntries"></div>
+    </div>
+
+  </div>
+
 </main>
 
 <!-- QUICK ADD FLOATING BUTTON -->
@@ -1027,11 +1134,13 @@ function init() {
   setDefaultImportMonth();
   renderAll();
   renderHistory();
+  initInvest();
 }
 
 function populateMonthSel() {
   const sel = document.getElementById('monthSel');
-  const prev = sel.value || currentMonth;
+  const saved = localStorage.getItem('spesemese_curmonth');
+  const prev = sel.value || currentMonth || saved || '';
 
   // Build the full range: 2026-01 → today
   const start = new Date(2026, 0, 1);
@@ -1054,6 +1163,7 @@ function populateMonthSel() {
   // Restore previous selection if still in list, otherwise default to first
   if (all.includes(prev)) sel.value = prev;
   currentMonth = sel.value;
+  localStorage.setItem('spesemese_curmonth', currentMonth);
 }
 
 function addMonth() {
@@ -1099,10 +1209,12 @@ function switchTab(id, btn) {
   if (id === 'overview') renderOverview();
   if (id === 'transactions') renderTx();
   if (id === 'history') renderHistory();
+  if (id === 'invest') renderInvest();
 }
 
 function onMonthChange() {
   currentMonth = document.getElementById('monthSel').value;
+  localStorage.setItem('spesemese_curmonth', currentMonth);
   renderAll();
 }
 
@@ -1741,18 +1853,14 @@ function onTxCheck(txId, chk) {
 }
 
 function updateBulkBar() {
+  const bulkBar = document.getElementById('bulkBar');
   const btnDel = document.getElementById('btnDelSel');
-  const btnBiz = document.getElementById('btnBizSel');
-  const btnTrip = document.getElementById('btnTripSel');
   const btnSel = document.getElementById('btnSelAll');
-  if (!btnDel || !btnSel) return;
+  if (!btnSel) return;
   const total = document.querySelectorAll('.tx-check').length;
   const checked = selectedIds.size;
-  const show = checked > 0 ? '' : 'none';
-  btnDel.style.display = show;
-  if (btnBiz) btnBiz.style.display = show;
-  if (btnTrip) btnTrip.style.display = show;
-  if (checked > 0) btnDel.textContent = `🗑️ Elimina ${checked} selezionat${checked===1?'a':'e'}`;
+  if (bulkBar) bulkBar.style.display = checked > 0 ? 'flex' : 'none';
+  if (btnDel && checked > 0) btnDel.textContent = `🗑️ Elimina ${checked} selezionat${checked===1?'a':'e'}`;
   btnSel.textContent = (checked > 0 && checked === total) ? 'Deseleziona tutto' : 'Seleziona tutto';
 }
 
@@ -2403,6 +2511,138 @@ function showToast(msg) {
 // START
 // ─────────────────────────────────────────────
 init();
+
+// ─────────────────────────────────────────────
+// INVESTIMENTI
+// ─────────────────────────────────────────────
+function getInvData() {
+  try { return JSON.parse(localStorage.getItem('spesemese_invest') || '{}'); } catch { return {}; }
+}
+function saveInvData(d) { localStorage.setItem('spesemese_invest', JSON.stringify(d)); }
+
+function getInv(key) {
+  const d = getInvData();
+  return d[key] || { initial: 0, entries: [] };
+}
+
+function setInv(key, val) {
+  const d = getInvData();
+  d[key] = val;
+  saveInvData(d);
+}
+
+function invTotal(key) {
+  const inv = getInv(key);
+  return inv.initial + inv.entries.reduce((s, e) => s + e.amount, 0);
+}
+
+function fmtInvMonth(m) {
+  const [y, mo] = m.split('-');
+  const months = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+  return `${months[parseInt(mo,10)-1]} ${y}`;
+}
+
+function initInvest() {
+  // Pre-fill month inputs with current month
+  const now = new Date().toISOString().slice(0,7);
+  const pm = document.getElementById('pacMonth');
+  const pp = document.getElementById('penMonth');
+  if (pm) pm.value = now;
+  if (pp) pp.value = now;
+
+  renderInvest();
+}
+
+function renderInvest() {
+  renderInvCard('pac',  'pacInitial', 'pacEntries', 'invPacTotal', 'invPacSub');
+  renderInvCard('pen',  'penInitial', 'penEntries', 'invPenTotal', 'invPenSub');
+}
+
+function renderInvCard(key, initialId, listId, totalId, subId) {
+  const inv = getInv(key);
+  const total = invTotal(key);
+
+  // Saldo iniziale input
+  const initEl = document.getElementById(initialId);
+  if (initEl && !initEl.dataset.dirty) initEl.value = inv.initial || '';
+
+  // Totale card
+  const totalEl = document.getElementById(totalId);
+  if (totalEl) totalEl.textContent = fmtEur(total);
+
+  const subEl = document.getElementById(subId);
+  if (subEl) {
+    const n = inv.entries.length;
+    if (n === 0 && !inv.initial) {
+      subEl.textContent = 'nessun versamento';
+    } else {
+      subEl.textContent = `${n} versament${n===1?'o':'i'}${inv.initial ? ' + saldo iniziale' : ''}`;
+    }
+  }
+
+  // Entries list
+  const listEl = document.getElementById(listId);
+  if (!listEl) return;
+  const sorted = [...inv.entries].sort((a,b) => b.month.localeCompare(a.month));
+  if (sorted.length === 0) {
+    listEl.innerHTML = '<div class="inv-empty">Nessun versamento ancora</div>';
+    return;
+  }
+  listEl.innerHTML = sorted.map((e, i) => `
+    <div class="inv-entry">
+      <span class="inv-entry-month">${fmtInvMonth(e.month)}</span>
+      <span class="inv-entry-amount">${fmtEur(e.amount)}</span>
+      <button class="inv-entry-del" onclick="deleteInvEntry('${key}','${e.month}')" title="Elimina">✕</button>
+    </div>
+  `).join('');
+}
+
+function saveInvInitial(key) {
+  const idMap = { pac: 'pacInitial', pen: 'penInitial' };
+  const el = document.getElementById(idMap[key]);
+  if (!el) return;
+  const val = parseFloat(el.value) || 0;
+  const inv = getInv(key);
+  inv.initial = val;
+  setInv(key, inv);
+  el.dataset.dirty = '';
+  delete el.dataset.dirty;
+  renderInvest();
+  showToast('Saldo iniziale salvato');
+}
+
+function addInvEntry(key) {
+  const monthId  = key === 'pac' ? 'pacMonth'  : 'penMonth';
+  const amountId = key === 'pac' ? 'pacAmount' : 'penAmount';
+  const monthEl  = document.getElementById(monthId);
+  const amountEl = document.getElementById(amountId);
+  if (!monthEl || !amountEl) return;
+  const month  = monthEl.value;
+  const amount = parseFloat(amountEl.value);
+  if (!month)       { showToast('Seleziona un mese'); return; }
+  if (!amount || amount <= 0) { showToast('Inserisci un importo valido'); return; }
+
+  const inv = getInv(key);
+  // Se esiste già un versamento per questo mese, sommalo
+  const existing = inv.entries.find(e => e.month === month);
+  if (existing) {
+    existing.amount += amount;
+  } else {
+    inv.entries.push({ month, amount });
+  }
+  setInv(key, inv);
+  amountEl.value = '';
+  renderInvest();
+  showToast('Versamento aggiunto');
+}
+
+function deleteInvEntry(key, month) {
+  if (!confirm(`Eliminare il versamento di ${fmtInvMonth(month)}?`)) return;
+  const inv = getInv(key);
+  inv.entries = inv.entries.filter(e => e.month !== month);
+  setInv(key, inv);
+  renderInvest();
+}
 </script>
 </body>
 </html>
