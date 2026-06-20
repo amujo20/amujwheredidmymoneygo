@@ -185,14 +185,15 @@
   }
   .logo {
     font-family: 'Baloo 2', cursive;
-    font-size: 16px; color: #fff;
-    flex: 1 1 0; min-width: 0;
+    font-size: 13px; color: #fff;
+    flex: 0 1 auto; min-width: 0;
     font-weight: 700;
     letter-spacing: -.2px; line-height: 1;
     text-shadow: 0 2px 8px rgba(0,0,0,.22);
-    display: flex; align-items: center; gap: 3px; overflow: hidden;
+    display: flex; align-items: center; gap: 3px;
+    white-space: nowrap;
   }
-  .logo-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .logo-text { }
   .logo-emoji { flex: 0 0 auto; }
   .month-sel {
     background: #fff; border: none;
@@ -613,7 +614,10 @@
   .inv-charts-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
   .inv-chart-block {}
   .inv-chart-label { font-size: 10px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
-  .inv-chart-empty { font-size: 12px; color: var(--text2); text-align: center; padding: 50px 0; }
+  .inv-chart-empty {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; color: var(--text2); background: var(--bg3); border-radius: 10px;
+  }
   @media (max-width: 400px) { .inv-charts-wrap { grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -868,15 +872,15 @@
       <div class="inv-charts-wrap">
         <div class="inv-chart-block">
           <div class="inv-chart-label">Andamento cumulativo</div>
-          <div class="chart-wrap" style="height:160px"><canvas id="pacLineChart"></canvas></div>
+          <div class="inv-chart-wrap" style="height:160px;position:relative"><canvas id="pacLineChart"></canvas><div class="inv-chart-empty" id="pacLineEmpty" style="display:none">Aggiungi versamenti</div></div>
         </div>
         <div class="inv-chart-block">
           <div class="inv-chart-label">Versamenti mensili</div>
-          <div class="chart-wrap" style="height:160px"><canvas id="pacBarChart"></canvas></div>
+          <div class="inv-chart-wrap" style="height:160px;position:relative"><canvas id="pacBarChart"></canvas><div class="inv-chart-empty" id="pacBarEmpty" style="display:none">Aggiungi versamenti</div></div>
         </div>
       </div>
       <div class="inv-start-row">
-        <label class="inv-label">Saldo iniziale (punto di partenza)</label>
+        <label class="inv-label">Saldo passato — versamenti precedenti all'app</label>
         <div class="inv-input-row">
           <input type="number" id="pacInitial" class="inv-input" placeholder="0,00" step="0.01" min="0">
         </div>
@@ -899,15 +903,15 @@
       <div class="inv-charts-wrap">
         <div class="inv-chart-block">
           <div class="inv-chart-label">Andamento cumulativo</div>
-          <div class="chart-wrap" style="height:160px"><canvas id="penLineChart"></canvas></div>
+          <div class="inv-chart-wrap" style="height:160px;position:relative"><canvas id="penLineChart"></canvas><div class="inv-chart-empty" id="penLineEmpty" style="display:none">Aggiungi versamenti</div></div>
         </div>
         <div class="inv-chart-block">
           <div class="inv-chart-label">Versamenti mensili</div>
-          <div class="chart-wrap" style="height:160px"><canvas id="penBarChart"></canvas></div>
+          <div class="inv-chart-wrap" style="height:160px;position:relative"><canvas id="penBarChart"></canvas><div class="inv-chart-empty" id="penBarEmpty" style="display:none">Aggiungi versamenti</div></div>
         </div>
       </div>
       <div class="inv-start-row">
-        <label class="inv-label">Saldo iniziale (punto di partenza)</label>
+        <label class="inv-label">Saldo passato — versamenti precedenti all'app</label>
         <div class="inv-input-row">
           <input type="number" id="penInitial" class="inv-input" placeholder="0,00" step="0.01" min="0">
         </div>
@@ -2558,7 +2562,7 @@ function setInv(key, val) {
 
 function invTotal(key) {
   const inv = getInv(key);
-  return inv.initial + inv.entries.reduce((s, e) => s + e.amount, 0);
+  return (inv.initial || 0) + inv.entries.reduce((s, e) => s + e.amount, 0);
 }
 
 function fmtInvMonth(m) {
@@ -2591,98 +2595,64 @@ function renderInvCharts(key, lineId, barId) {
   const inv = getInv(key);
   const sorted = [...inv.entries].sort((a,b) => a.month.localeCompare(b.month));
 
-  // Build cumulative line data
-  const labels = sorted.map(e => fmtInvMonth(e.month));
+  // Build cumulative line data starting from initial balance
+  const lineLabels = inv.initial > 0 ? ['Inizio', ...sorted.map(e => fmtInvMonth(e.month))]
+                                      : sorted.map(e => fmtInvMonth(e.month));
   const cumulative = [];
   let running = inv.initial || 0;
+  if (inv.initial > 0) cumulative.push(running);
   sorted.forEach(e => { running += e.amount; cumulative.push(running); });
 
-  // If initial only, still show a single point
-  if (sorted.length === 0 && inv.initial > 0) {
-    labels.push('Inizio');
-    cumulative.push(inv.initial);
-  }
-
+  const barLabels  = sorted.map(e => fmtInvMonth(e.month));
   const barAmounts = sorted.map(e => e.amount);
 
-  // Resolve theme color
+  // Theme color from CSS vars
   const cs = getComputedStyle(document.documentElement);
-  const colorVar = key === 'pac' ? '--kpi-top' : '--kpi-vs';
-  // Extract first color from gradient for solid use
-  const gradStr = cs.getPropertyValue(colorVar).trim();
+  const gradStr = cs.getPropertyValue(key === 'pac' ? '--kpi-top' : '--kpi-vs').trim();
   const hexMatch = gradStr.match(/#[0-9a-fA-F]{3,6}/g);
-  const c1 = hexMatch ? hexMatch[0] : '#5b9bd5';
+  const c1 = hexMatch ? hexMatch[0] : (key === 'pac' ? '#5b9bd5' : '#9b59b6');
   const c2 = hexMatch && hexMatch[1] ? hexMatch[1] : c1;
-
-  const empty = labels.length === 0;
-
-  // Line chart
-  if (invCharts[lineId]) { invCharts[lineId].destroy(); delete invCharts[lineId]; }
-  const lineCtx = document.getElementById(lineId);
-  if (lineCtx) {
-    if (empty) {
-      lineCtx.parentElement.innerHTML = '<div class="inv-chart-empty">Aggiungi versamenti per vedere il grafico</div>';
-    } else {
-      invCharts[lineId] = new Chart(lineCtx, {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [{
-            data: cumulative,
-            borderColor: c1,
-            backgroundColor: c1 + '22',
-            fill: true,
-            tension: 0.35,
-            pointRadius: cumulative.length < 8 ? 4 : 2,
-            pointBackgroundColor: c1,
-            borderWidth: 2,
-          }]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: {
-            callbacks: { label: ctx => ' ' + fmtEur(ctx.parsed.y) }
-          }},
-          scales: {
-            x: { ticks: { font: { size: 10 }, color: cs.getPropertyValue('--text2').trim(), maxRotation: 45 }, grid: { display: false } },
-            y: { ticks: { font: { size: 10 }, color: cs.getPropertyValue('--text2').trim(), callback: v => '€' + (v>=1000?(v/1000).toFixed(1)+'k':v) }, grid: { color: cs.getPropertyValue('--border').trim() } }
-          }
-        }
-      });
+  const textCol  = cs.getPropertyValue('--text2').trim();
+  const gridCol  = cs.getPropertyValue('--border').trim();
+  const tickFmt  = v => '€' + (v >= 1000 ? (v/1000).toFixed(1)+'k' : v);
+  const chartOpts = (extra) => ({
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' ' + fmtEur(ctx.parsed.y) } } },
+    scales: {
+      x: { ticks: { font: { size: 10 }, color: textCol, maxRotation: 45 }, grid: { display: false } },
+      y: { ticks: { font: { size: 10 }, color: textCol, callback: tickFmt }, grid: { color: gridCol } },
+      ...extra
     }
-  }
+  });
 
-  // Bar chart
-  if (invCharts[barId]) { invCharts[barId].destroy(); delete invCharts[barId]; }
-  const barCtx = document.getElementById(barId);
-  if (barCtx) {
-    if (empty) {
-      barCtx.parentElement.innerHTML = '<div class="inv-chart-empty">Aggiungi versamenti per vedere il grafico</div>';
-    } else {
-      invCharts[barId] = new Chart(barCtx, {
-        type: 'bar',
-        data: {
-          labels,
-          datasets: [{
-            data: barAmounts,
-            backgroundColor: c2 + 'cc',
-            borderRadius: 6,
-            borderSkipped: false,
-          }]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: {
-            callbacks: { label: ctx => ' ' + fmtEur(ctx.parsed.y) }
-          }},
-          scales: {
-            x: { ticks: { font: { size: 10 }, color: cs.getPropertyValue('--text2').trim(), maxRotation: 45 }, grid: { display: false } },
-            y: { ticks: { font: { size: 10 }, color: cs.getPropertyValue('--text2').trim(), callback: v => '€' + (v>=1000?(v/1000).toFixed(1)+'k':v) }, grid: { color: cs.getPropertyValue('--border').trim() } }
-          }
-        }
-      });
+  const renderChart = (id, emptyId, hasData, build) => {
+    if (invCharts[id]) { invCharts[id].destroy(); delete invCharts[id]; }
+    const ctx = document.getElementById(id);
+    const emptyEl = document.getElementById(emptyId);
+    if (!ctx) return;
+    if (!hasData) {
+      ctx.style.display = 'none';
+      if (emptyEl) emptyEl.style.display = '';
+      return;
     }
-  }
+    ctx.style.display = '';
+    if (emptyEl) emptyEl.style.display = 'none';
+    invCharts[id] = build(ctx);
+  };
+
+  const pfx = key === 'pac' ? 'pac' : 'pen';
+
+  renderChart(lineId, pfx + 'LineEmpty', cumulative.length > 0, ctx => new Chart(ctx, {
+    type: 'line',
+    data: { labels: lineLabels, datasets: [{ data: cumulative, borderColor: c1, backgroundColor: c1+'28', fill: true, tension: 0.35, pointRadius: cumulative.length < 8 ? 4 : 2, pointBackgroundColor: c1, borderWidth: 2 }] },
+    options: chartOpts()
+  }));
+
+  renderChart(barId, pfx + 'BarEmpty', barAmounts.length > 0, ctx => new Chart(ctx, {
+    type: 'bar',
+    data: { labels: barLabels, datasets: [{ data: barAmounts, backgroundColor: c2+'cc', borderRadius: 6, borderSkipped: false }] },
+    options: chartOpts()
+  }));
 }
 
 function renderInvCard(key, initialId, listId, totalId, subId) {
