@@ -601,8 +601,9 @@
     padding: 10px 12px; border-radius: 12px;
     background: var(--bg3); font-size: 14px;
   }
-  .inv-entry-month  { flex: 1; font-weight: 600; color: var(--text); }
-  .inv-entry-amount { font-weight: 700; color: var(--accent); }
+  .inv-entry-month  { font-weight: 600; color: var(--text); }
+  .inv-cat-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+  .inv-entry-amount { font-weight: 700; color: var(--accent); margin-left: auto; }
   .inv-entry-del {
     width: 28px; height: 28px; border-radius: 8px; border: none;
     background: rgba(184,91,72,.12); color: var(--red); cursor: pointer;
@@ -897,6 +898,11 @@
           <input type="month" id="pacMonth" class="inv-input">
           <input type="number" id="pacAmount" class="inv-input" placeholder="Importo €" step="0.01" min="0">
         </div>
+        <select id="pacCat" class="inv-input" style="width:100%;box-sizing:border-box;margin-top:8px">
+          <option value="world">🌍 World</option>
+          <option value="emerging">📈 Emerging</option>
+          <option value="oro">🥇 Oro</option>
+        </select>
         <button class="btn btn-primary inv-save-btn" onclick="addInvEntry('pac')" style="margin-top:8px">＋ Aggiungi versamento</button>
       </div>
       <details class="inv-range">
@@ -914,6 +920,11 @@
         </div>
         <label class="inv-label" style="margin-top:8px">Importo mensile</label>
         <input type="number" id="pacRangeAmount" class="inv-input" placeholder="Importo € per mese" step="0.01" min="0" style="width:100%;box-sizing:border-box">
+        <select id="pacRangeCat" class="inv-input" style="width:100%;box-sizing:border-box;margin-top:8px">
+          <option value="world">🌍 World</option>
+          <option value="emerging">📈 Emerging</option>
+          <option value="oro">🥇 Oro</option>
+        </select>
         <button class="btn btn-primary inv-save-btn" onclick="fillInvRange('pac')" style="margin-top:8px">Compila intervallo</button>
       </details>
       <div class="inv-entries" id="pacEntries"></div>
@@ -2580,6 +2591,12 @@ function showToast(msg) {
 // START
 // ─────────────────────────────────────────────
 let invCharts = {};
+// Categorie del PAC (per l'istogramma stacked)
+const PAC_CATS = [
+  { key: 'world',    label: 'World',    emoji: '🌍', color: '#3a7bd5' },
+  { key: 'emerging', label: 'Emerging', emoji: '📈', color: '#2fa98a' },
+  { key: 'oro',      label: 'Oro',      emoji: '🥇', color: '#d4a72c' },
+];
 init();
 
 // ─────────────────────────────────────────────
@@ -2611,6 +2628,8 @@ function fmtInvMonth(m) {
   const months = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
   return `${months[parseInt(mo,10)-1]} ${y}`;
 }
+
+function pacCat(key) { return PAC_CATS.find(c => c.key === key) || { key: key||'altro', label: 'Altro', emoji: '•', color: '#9aa0a6' }; }
 
 function initInvest() {
   // Pre-fill month inputs with current month
@@ -2686,11 +2705,45 @@ function renderInvCharts(key, lineId, barId) {
     options: opts
   });
 
-  draw(barId, pfx + 'BarEmpty', barAmounts.length > 0, {
-    type: 'bar',
-    data: { labels: barLabels, datasets: [{ data: barAmounts, backgroundColor: c2+'cc', borderRadius: 6, borderSkipped: false }] },
-    options: opts
-  });
+  if (key === 'pac') {
+    // Istogramma stacked per categoria (World / Emerging / Oro)
+    const months = [...new Set(sorted.map(e => e.month))].sort();
+    // categorie presenti nei dati, in ordine PAC_CATS + eventuale "Altro"
+    const presentKeys = [...new Set(sorted.map(e => pacCat(e.cat).key))];
+    const orderedCats = [
+      ...PAC_CATS.filter(c => presentKeys.includes(c.key)),
+      ...(presentKeys.includes('altro') ? [pacCat(null)] : [])
+    ];
+    const datasets = orderedCats.map(c => ({
+      label: c.label,
+      data: months.map(mo => sorted.filter(e => e.month === mo && pacCat(e.cat).key === c.key)
+                                   .reduce((s, e) => s + e.amount, 0)),
+      backgroundColor: c.color + 'dd',
+      borderRadius: 4, borderSkipped: false, stack: 'pac',
+    }));
+    const stackedOpts = {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, font: { size: 10 }, color: textCol } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmtEur(ctx.parsed.y)}` } }
+      },
+      scales: {
+        x: { stacked: true, ticks: { font: { size: 10 }, color: textCol, maxRotation: 45 }, grid: { display: false } },
+        y: { stacked: true, ticks: { font: { size: 10 }, color: textCol, callback: tickFmt }, grid: { color: gridCol } }
+      }
+    };
+    draw(barId, pfx + 'BarEmpty', months.length > 0, {
+      type: 'bar',
+      data: { labels: months.map(fmtInvMonth), datasets },
+      options: stackedOpts
+    });
+  } else {
+    draw(barId, pfx + 'BarEmpty', barAmounts.length > 0, {
+      type: 'bar',
+      data: { labels: barLabels, datasets: [{ data: barAmounts, backgroundColor: c2+'cc', borderRadius: 6, borderSkipped: false }] },
+      options: opts
+    });
+  }
 }
 
 function renderInvCard(key, initialId, listId, totalId, subId) {
@@ -2723,13 +2776,17 @@ function renderInvCard(key, initialId, listId, totalId, subId) {
     listEl.innerHTML = '<div class="inv-empty">Nessun versamento ancora</div>';
     return;
   }
-  listEl.innerHTML = sorted.map((e, i) => `
+  listEl.innerHTML = sorted.map((e) => {
+    const c = key === 'pac' ? pacCat(e.cat) : null;
+    const badge = c ? `<span class="inv-cat-badge" style="background:${c.color}22;color:${c.color}">${c.emoji} ${c.label}</span>` : '';
+    return `
     <div class="inv-entry">
       <span class="inv-entry-month">${fmtInvMonth(e.month)}</span>
+      ${badge}
       <span class="inv-entry-amount">${fmtEur(e.amount)}</span>
-      <button class="inv-entry-del" onclick="deleteInvEntry('${key}','${e.month}')" title="Elimina">✕</button>
-    </div>
-  `).join('');
+      <button class="inv-entry-del" onclick="deleteInvEntry('${key}','${e.month}','${e.cat||''}')" title="Elimina">✕</button>
+    </div>`;
+  }).join('');
 }
 
 function saveInvInitial(key) {
@@ -2747,23 +2804,22 @@ function saveInvInitial(key) {
 }
 
 function addInvEntry(key) {
-  const monthId  = key === 'pac' ? 'pacMonth'  : 'penMonth';
-  const amountId = key === 'pac' ? 'pacAmount' : 'penAmount';
-  const monthEl  = document.getElementById(monthId);
-  const amountEl = document.getElementById(amountId);
+  const monthEl  = document.getElementById(key === 'pac' ? 'pacMonth'  : 'penMonth');
+  const amountEl = document.getElementById(key === 'pac' ? 'pacAmount' : 'penAmount');
   if (!monthEl || !amountEl) return;
   const month  = monthEl.value;
   const amount = parseFloat(amountEl.value);
   if (!month)       { showToast('Seleziona un mese'); return; }
   if (!amount || amount <= 0) { showToast('Inserisci un importo valido'); return; }
+  const cat = key === 'pac' ? (document.getElementById('pacCat')?.value || 'world') : undefined;
 
   const inv = getInv(key);
-  // Se esiste già un versamento per questo mese, sommalo
-  const existing = inv.entries.find(e => e.month === month);
+  // Identità: per il PAC è mese+categoria, per la pensione solo mese
+  const existing = inv.entries.find(e => e.month === month && (key !== 'pac' || (e.cat||'world') === cat));
   if (existing) {
     existing.amount += amount;
   } else {
-    inv.entries.push({ month, amount });
+    inv.entries.push(key === 'pac' ? { month, amount, cat } : { month, amount });
   }
   setInv(key, inv);
   amountEl.value = '';
@@ -2771,10 +2827,10 @@ function addInvEntry(key) {
   showToast('Versamento aggiunto');
 }
 
-function deleteInvEntry(key, month) {
+function deleteInvEntry(key, month, cat) {
   if (!confirm(`Eliminare il versamento di ${fmtInvMonth(month)}?`)) return;
   const inv = getInv(key);
-  inv.entries = inv.entries.filter(e => e.month !== month);
+  inv.entries = inv.entries.filter(e => !(e.month === month && (key !== 'pac' || (e.cat||'') === (cat||''))));
   setInv(key, inv);
   renderInvest();
 }
@@ -2800,11 +2856,12 @@ function fillInvRange(key) {
   }
   if (months.length > 240) { showToast('Intervallo troppo ampio'); return; }
 
+  const cat = key === 'pac' ? (document.getElementById('pacRangeCat')?.value || 'world') : undefined;
   const inv = getInv(key);
   months.forEach(month => {
-    const existing = inv.entries.find(e => e.month === month);
+    const existing = inv.entries.find(e => e.month === month && (key !== 'pac' || (e.cat||'world') === cat));
     if (existing) existing.amount = amount;  // sovrascrive: imposta la baseline
-    else inv.entries.push({ month, amount });
+    else inv.entries.push(key === 'pac' ? { month, amount, cat } : { month, amount });
   });
   setInv(key, inv);
   amtEl.value = '';
