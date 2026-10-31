@@ -2472,6 +2472,7 @@ function exportBackup() {
     exportedAt: new Date().toISOString(),
     data: getAllData(),
     rules: getCustomRules(),
+    invest: getInvData(),
   };
   const blob = new Blob([JSON.stringify(backup, null, 2)], {type: 'application/json'});
   const a = document.createElement('a');
@@ -2494,6 +2495,7 @@ function importBackup(e) {
       if (!confirm(`Importare ${months} mesi (${txCount} transazioni)?\nI dati attuali verranno sovrascritti.`)) return;
       saveAllData(backup.data);
       if (backup.rules) localStorage.setItem('spesemese_rules', JSON.stringify(backup.rules));
+      if (backup.invest) { saveInvData(backup.invest); if (typeof renderInvest === 'function') renderInvest(); }
       populateMonthSel();
       renderAll();
       renderHistory();
