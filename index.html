@@ -576,6 +576,17 @@
     .kpi-grid { grid-template-columns: repeat(6, 1fr); }
     main { padding: 20px 24px 40px; }
   }
+  /* ── DATI ── */
+  .data-hint { font-size:12.5px; color:var(--text2); line-height:1.55; margin:-4px 0 12px; }
+  .data-import { padding:0; }
+  .data-import > summary { list-style:none; cursor:pointer; padding:16px; font-size:14px; font-weight:700; color:var(--text); display:flex; flex-direction:column; gap:2px; }
+  .data-import > summary::-webkit-details-marker { display:none; }
+  .data-import > summary::after { content:'▾'; position:absolute; right:18px; top:16px; color:var(--text2); transition:transform .2s; }
+  .data-import { position:relative; }
+  .data-import[open] > summary::after { transform:rotate(180deg); }
+  .data-sum-sub { font-size:11.5px; font-weight:500; color:var(--text2); }
+  .data-import-body { padding:0 16px 16px; }
+  .data-import-body .card { box-shadow:none; background:var(--bg3); }
   /* ── ANNO ── */
   .year-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
   .year-title { font-family:'Baloo 2',cursive; font-size:24px; font-weight:800; color:var(--text); line-height:1.05; }
@@ -700,13 +711,9 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
     Transazioni
   </button>
-  <button class="tab" onclick="switchTab('import',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-    Import
-  </button>
-  <button class="tab" onclick="switchTab('history',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-    Storico
+  <button class="tab" onclick="switchTab('data',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
+    Dati
   </button>
   <button class="tab" onclick="switchTab('invest',this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
@@ -800,52 +807,6 @@
     <div class="tx-list" id="txList"></div>
   </div>
 
-  <!-- IMPORT -->
-  <div class="section" id="sec-import">
-    <div class="card">
-      <div class="card-title">Mese di riferimento</div>
-      <input type="month" id="importMonth" class="month-sel" style="width:100%;padding:10px;margin-top:4px;font-size:14px;"
-             value="">
-    </div>
-
-    <div id="dz1-wrap">
-      <div class="drop-zone" id="dz1" onclick="document.getElementById('file1').click()"
-           ondragover="dzDrag(event,'dz1')" ondragleave="dzLeave('dz1')" ondrop="dzDrop(event,'dz1',1)">
-        <div class="icon">🏦</div>
-        <div class="dz-title">Intesa San Paolo</div>
-        <div class="dz-sub">Excel (.xlsx / .xls / .csv) o PDF</div>
-        <input type="file" id="file1" accept=".xlsx,.xls,.csv,.pdf" onchange="loadFile(event,1)">
-      </div>
-      <div id="mapper1" style="display:none;" class="card">
-        <div class="card-title">Mappa colonne — Intesa San Paolo</div>
-        <div id="mapperContent1"></div>
-        <div id="preview1" style="margin-top:10px;"></div>
-      </div>
-    </div>
-
-    <div id="dz2-wrap">
-      <div class="drop-zone" id="dz2" onclick="document.getElementById('file2').click()"
-           ondragover="dzDrag(event,'dz2')" ondragleave="dzLeave('dz2')" ondrop="dzDrop(event,'dz2',2)">
-        <div class="icon">🏦</div>
-        <div class="dz-title">Trade Republic</div>
-        <div class="dz-sub">Excel (.xlsx / .xls / .csv) o PDF</div>
-        <input type="file" id="file2" accept=".xlsx,.xls,.csv,.pdf" onchange="loadFile(event,2)">
-      </div>
-      <div id="mapper2" style="display:none;" class="card">
-        <div class="card-title">Mappa colonne — Trade Republic</div>
-        <div id="mapperContent2"></div>
-        <div id="preview2" style="margin-top:10px;"></div>
-      </div>
-    </div>
-
-    <button class="btn btn-primary" id="importBtn" onclick="importData()" disabled>
-      📥 Importa transazioni
-    </button>
-    <button class="btn btn-secondary" style="margin-top:8px" onclick="clearMonth()">
-      🗑️ Cancella mese corrente
-    </button>
-  </div>
-
   <!-- HISTORY -->
   <!-- ANNO -->
   <div class="section" id="sec-year">
@@ -886,33 +847,76 @@
     </div>
   </div>
 
-  <div class="section" id="sec-history">
+  <!-- DATI: backup, mesi salvati, import estratti conto -->
+  <div class="section" id="sec-data">
     <div class="card">
-      <div class="card-title">Mesi salvati</div>
-      <div class="months-grid" id="monthsGrid"></div>
-    </div>
-    <div class="card" id="historyStats" style="display:none;">
-      <div class="card-title">Confronto ultimi mesi</div>
-      <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
-    </div>
-    <!-- Sync / backup -->
-    <div class="card" style="margin-top:4px">
-      <div class="card-title">☁️ Sync tra dispositivi</div>
-      <p style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.6">
-        Esporta un backup completo dal PC, poi importalo sull'iPhone per sincronizzare tutti i mesi e le regole di categorizzazione.
-      </p>
+      <div class="card-title">💾 Backup</div>
+      <p class="data-hint">Il backup contiene tutto: transazioni, regole di categorizzazione e investimenti. Usalo per passare i dati da un dispositivo all'altro o per caricare quelli che ti preparo io.</p>
       <div style="display:flex;flex-direction:column;gap:8px">
-        <button class="btn btn-primary" onclick="exportBackup()">📦 Esporta backup completo (.json)</button>
-        <label class="btn btn-secondary" style="text-align:center;cursor:pointer">
+        <label class="btn btn-primary" style="text-align:center;cursor:pointer">
           📥 Importa backup (.json)
           <input type="file" accept=".json" onchange="importBackup(event)" style="display:none">
         </label>
+        <button class="btn btn-secondary" onclick="exportBackup()">📦 Esporta backup completo (.json)</button>
         <button class="btn btn-secondary" onclick="exportCSV()">📊 Esporta CSV (solo lettura)</button>
       </div>
-      <p style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.5">
-        ⚠️ Importare un backup <strong>sovrascrive</strong> tutti i dati presenti sul dispositivo.
-      </p>
+      <p class="data-hint" style="margin:10px 0 0;font-size:11px">⚠️ Importare un backup <strong>sovrascrive</strong> tutti i dati presenti sul dispositivo.</p>
     </div>
+
+    <div class="card">
+      <div class="card-title">📅 Mesi salvati</div>
+      <div class="months-grid" id="monthsGrid"></div>
+    </div>
+
+    <details class="card data-import">
+      <summary>📥 Importa estratti conto <span class="data-sum-sub">Intesa San Paolo · Trade Republic</span></summary>
+      <div class="data-import-body">
+        <p class="data-hint">Le transazioni nuove si <strong>aggiungono</strong> a quelle del mese: quelle già presenti (stessa data, importo e descrizione) vengono saltate, quindi puoi importare le due banche una dopo l'altra senza perdere nulla.</p>
+      <div class="card">
+        <div class="card-title">Mese di riferimento</div>
+        <input type="month" id="importMonth" class="month-sel" style="width:100%;padding:10px;margin-top:4px;font-size:14px;"
+               value="">
+      </div>
+
+      <div id="dz1-wrap">
+        <div class="drop-zone" id="dz1" onclick="document.getElementById('file1').click()"
+             ondragover="dzDrag(event,'dz1')" ondragleave="dzLeave('dz1')" ondrop="dzDrop(event,'dz1',1)">
+          <div class="icon">🏦</div>
+          <div class="dz-title">Intesa San Paolo</div>
+          <div class="dz-sub">Excel (.xlsx / .xls / .csv) o PDF</div>
+          <input type="file" id="file1" accept=".xlsx,.xls,.csv,.pdf" onchange="loadFile(event,1)">
+        </div>
+        <div id="mapper1" style="display:none;" class="card">
+          <div class="card-title">Mappa colonne — Intesa San Paolo</div>
+          <div id="mapperContent1"></div>
+          <div id="preview1" style="margin-top:10px;"></div>
+        </div>
+      </div>
+
+      <div id="dz2-wrap">
+        <div class="drop-zone" id="dz2" onclick="document.getElementById('file2').click()"
+             ondragover="dzDrag(event,'dz2')" ondragleave="dzLeave('dz2')" ondrop="dzDrop(event,'dz2',2)">
+          <div class="icon">🏦</div>
+          <div class="dz-title">Trade Republic</div>
+          <div class="dz-sub">Excel (.xlsx / .xls / .csv) o PDF</div>
+          <input type="file" id="file2" accept=".xlsx,.xls,.csv,.pdf" onchange="loadFile(event,2)">
+        </div>
+        <div id="mapper2" style="display:none;" class="card">
+          <div class="card-title">Mappa colonne — Trade Republic</div>
+          <div id="mapperContent2"></div>
+          <div id="preview2" style="margin-top:10px;"></div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="importBtn" onclick="importData()" disabled>
+        📥 Importa transazioni
+      </button>
+      <button class="btn btn-secondary" style="margin-top:8px" onclick="clearMonth()">
+        🗑️ Cancella mese corrente
+      </button>
+
+      </div>
+    </details>
   </div>
 
   <!-- INVESTIMENTI -->
@@ -1236,7 +1240,6 @@ let parsedFiles = [null, null];
 let colMaps = [{}, {}];
 let pieChartInst = null;
 let barChartInst = null;
-let trendChartInst = null;
 
 // ─────────────────────────────────────────────
 // INIT
@@ -1330,7 +1333,7 @@ function switchTab(id, btn) {
   btn.classList.add('active');
   if (id === 'overview') renderOverview();
   if (id === 'transactions') renderTx();
-  if (id === 'history') renderHistory();
+  if (id === 'data') renderHistory();
   if (id === 'invest') renderInvest();
   if (id === 'year') renderYear();
 }
@@ -2155,6 +2158,15 @@ function detectColumns(xs) {
 }
 
 function onFileParsed(n, filename, rows) {
+  // Alcuni export (es. Excel di Intesa San Paolo) hanno righe di intestazione
+  // (conto, periodo, ...) prima della vera riga "Data / Operazione / Importo":
+  // cerca quella riga e scarta tutto ciò che la precede.
+  const hdrIdx = rows.slice(0, 40).findIndex(r => {
+    const cells = (r || []).map(c => String(c).trim().toLowerCase());
+    return cells.some(c => c === 'data' || c === 'date' || c === 'datetime') &&
+           cells.some(c => /^(importo|amount)/.test(c));
+  });
+  if (hdrIdx > 0) rows = rows.slice(hdrIdx);
   parsedFiles[n-1] = rows;
   showMapper(n, rows);
   const dz = document.getElementById('dz'+n);
@@ -2167,7 +2179,7 @@ function onFileParsed(n, filename, rows) {
 // Known CSV format presets: { fieldName: headerKeywords[] }
 const CSV_PRESETS = {
   'Trade Republic': { date:['date','datetime'], desc:['name','description','descri'], amount:['amount','importo'], cat:['category','categoria'] },
-  'Intesa San Paolo': { date:['data','date'], desc:['descrizione','descri','causale'], amount:['importo','import','amount'], cat:['categoria','category'] },
+  'Intesa San Paolo': { date:['data','date'], desc:['operazione','descrizione','descri','causale'], amount:['importo','import','amount'], cat:['categoria','category'] },
   'Generico': { date:['data','date','datetime'], desc:['descrizione','descri','causale','description','name'], amount:['importo','import','amount'], cat:['categoria','category'] },
 };
 
@@ -2181,7 +2193,7 @@ function showMapper(n, rows) {
   // Auto-detect preset by checking headers
   let detectedPreset = 'Generico';
   if (headers.some(h => h.toLowerCase() === 'datetime' || h.toLowerCase() === 'asset_class')) detectedPreset = 'Trade Republic';
-  else if (headers.some(h => h.toLowerCase() === 'causale' || h.toLowerCase() === 'filiale')) detectedPreset = 'Intesa San Paolo';
+  else if (headers.some(h => ['causale','filiale','operazione','contabilizzazione'].includes(h.toLowerCase()))) detectedPreset = 'Intesa San Paolo';
 
   const guessCol = (keywords) => {
     for (const kw of keywords) {
@@ -2380,8 +2392,16 @@ function importData() {
   // Update tx ids to use the (possibly corrected) month
   allTx = allTx.map(t => ({ ...t, id: t.id.replace(/^[^_]+/, month) }));
 
-  // Merge with existing (avoid duplicates by id prefix)
-  const existing = getMonthData(month).filter(t => !t.id.startsWith(month+'_'));
+  // Unisci alle transazioni del mese senza cancellare nulla: salta solo i doppioni
+  // (stessa data, importo e descrizione). Conteggio per chiave, così due movimenti
+  // identici legittimi nello stesso file non vengono fusi in uno.
+  const existing = getMonthData(month);
+  const txKey = t => `${t.date}|${Number(t.amount).toFixed(2)}|${String(t.description||'').trim().toLowerCase()}`;
+  const seen = {};
+  existing.forEach(t => { const k = txKey(t); seen[k] = (seen[k]||0) + 1; });
+  const fresh = allTx.filter(t => { const k = txKey(t); if (seen[k]) { seen[k]--; return false; } return true; });
+  const skipped = allTx.length - fresh.length;
+  allTx = fresh;
   saveMonthData(month, [...existing, ...allTx]);
   currentMonth = month;
 
@@ -2401,7 +2421,7 @@ function importData() {
 
   populateMonthSel();
   document.getElementById('monthSel').value = month;
-  showToast(`✅ Importate ${allTx.length} transazioni`);
+  showToast(`✅ Importate ${allTx.length} transazioni` + (skipped ? ` · ${skipped} già presenti saltate` : ''));
   switchTab('overview', document.querySelectorAll('.tab')[0]);
 }
 
@@ -2421,63 +2441,25 @@ function clearMonth() {
 // ─────────────────────────────────────────────
 function renderHistory() {
   const all = getAllData();
-  const months = Object.keys(all).sort().reverse();
+  const months = Object.keys(all).filter(m => (all[m]||[]).length).sort().reverse();
   const grid = document.getElementById('monthsGrid');
-
+  if (!grid) return;
   if (!months.length) {
     grid.innerHTML = '<div class="no-data" style="grid-column:span 2">Nessun mese salvato</div>';
-    document.getElementById('historyStats').style.display='none';
     return;
   }
-
   grid.innerHTML = months.map(m => {
     const txs = all[m];
+    const inc = txs.filter(t => t.amount > 0).reduce((a,t) => a + t.amount, 0);
     const exp = expenseTotal(txs);
+    const bal = inc - exp;
     return `<div class="month-chip ${m===currentMonth?'active':''}" onclick="jumpToMonth('${m}')">
       <div>${fmtMonthLabel(m)}</div>
       <div style="font-size:11px;color:var(--text2);margin-top:2px">${fmtEur(exp)} spese</div>
+      <div style="font-size:12px;margin-top:1px;white-space:nowrap;color:var(${bal>=0?'--green':'--red'});font-weight:800">${bal>=0?'+':'−'}${fmtEur(bal)}</div>
     </div>`;
   }).join('');
-
-  // Trend chart
-  document.getElementById('historyStats').style.display = months.length > 1 ? 'block' : 'none';
-  if (months.length > 1) {
-    const last = months.slice(0,6).reverse();
-    const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text');
-    const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--border');
-    if (trendChartInst) trendChartInst.destroy();
-    const ctx = document.getElementById('trendChart').getContext('2d');
-    trendChartInst = new Chart(ctx, {
-      type:'line',
-      data: {
-        labels: last.map(fmtMonthLabel),
-        datasets: [{
-          label:'Spese totali',
-          data: last.map(m=>expenseTotal(all[m])),
-          borderColor:themeColorVar('--red'), backgroundColor:themeColorVar('--red',.12),
-          tension:.4, fill:true, pointRadius:4
-        },{
-          label:'Entrate totali',
-          data: last.map(m=>all[m].filter(t=>t.amount>0).reduce((a,t)=>a+t.amount,0)),
-          borderColor:themeColorVar('--green'), backgroundColor:themeColorVar('--green',.12),
-          tension:.4, fill:true, pointRadius:4
-        }]
-      },
-      options:{
-        responsive:true, maintainAspectRatio:false,
-        plugins:{
-          legend:{ labels:{ color:textColor, font:{size:11}, boxWidth:12 }},
-          tooltip:{ callbacks:{ label:(ctx)=>` ${ctx.dataset.label}: ${fmtEur(ctx.parsed.y)}` }}
-        },
-        scales:{
-          x:{ ticks:{color:textColor,font:{size:11}}, grid:{color:gridColor}},
-          y:{ ticks:{color:textColor,font:{size:11},callback:v=>'€'+v.toLocaleString('it')}, grid:{color:gridColor}},
-        }
-      }
-    });
-  }
 }
-
 function jumpToMonth(m) {
   currentMonth = m;
   document.getElementById('monthSel').value = m;
