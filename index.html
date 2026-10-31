@@ -180,27 +180,28 @@
     position: sticky; top: 0; z-index: 100;
     height: var(--header-h);
     background: var(--header-grad);
-    padding: 0 16px; display: flex; align-items: center; gap: 10px;
+    padding: 0 12px; display: flex; align-items: center; gap: 8px;
     box-shadow: var(--header-shadow);
   }
   .logo {
     font-family: 'Baloo 2', cursive;
-    font-size: 16px; color: #fff;
-    flex: 1 1 0; min-width: 0;
+    font-size: clamp(13px, 4vw, 18px); color: #fff;
+    flex: 1 1 auto; min-width: max-content;
     font-weight: 700;
-    letter-spacing: -.2px; line-height: 1;
+    letter-spacing: -.3px; line-height: 1;
     text-shadow: 0 2px 8px rgba(0,0,0,.22);
-    display: flex; align-items: center; gap: 3px; overflow: hidden;
+    display: flex; align-items: center; gap: 3px;
+    white-space: nowrap;
   }
-  .logo-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .logo-text { white-space: nowrap; }
   .logo-emoji { flex: 0 0 auto; }
   .month-sel {
     background: #fff; border: none;
     color: #333; border-radius: 10px;
-    padding: 6px 6px; font-size: 12px; font-weight: 600;
+    padding: 6px 4px 6px 8px; font-size: 12px; font-weight: 600;
     cursor: pointer; font-family: inherit;
     box-shadow: 0 1px 6px rgba(0,0,0,.15);
-    flex: 0 0 auto; min-width: 80px; max-width: 110px;
+    flex: 0 1 auto; min-width: 0; max-width: 104px; margin-left: auto;
   }
   .month-sel option { color: var(--text); background: var(--bg2); }
   .btn-icon {
@@ -253,6 +254,9 @@
     letter-spacing: .2px; text-transform: uppercase;
   }
   .tab svg { width: 19px; height: 19px; }
+  @media (max-width: 599px) {
+    .tab { flex: 1 1 0; min-width: 0; padding: 10px 1px 8px; font-size: 10px; letter-spacing: 0; text-transform: none; white-space: nowrap; }
+  }
   .tab.active { color: var(--accent2); border-bottom-color: var(--accent2); }
   /* LAYOUT */
   main { flex: 1; overflow-y: auto; padding: 16px 14px 32px; }
@@ -572,6 +576,36 @@
     .kpi-grid { grid-template-columns: repeat(6, 1fr); }
     main { padding: 20px 24px 40px; }
   }
+  /* ── ANNO ── */
+  .year-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+  .year-title { font-family:'Baloo 2',cursive; font-size:24px; font-weight:800; color:var(--text); line-height:1.05; }
+  .year-sub { font-size:12px; color:var(--text2); margin-top:3px; }
+  .year-sel { padding:8px 12px; border-radius:12px; border:1.5px solid var(--border); background:var(--bg2); color:var(--text); font-size:14px; font-weight:700; font-family:inherit; }
+  .year-table { margin-top:14px; display:flex; flex-direction:column; gap:4px; }
+  .yt-row { display:grid; grid-template-columns:1.1fr 1fr 1fr 1.05fr; gap:6px; align-items:center; padding:8px 10px; border-radius:10px; font-size:13px; }
+  .yt-row:nth-child(even) { background:var(--bg3); }
+  .yt-head { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--text2); background:none !important; padding-top:0; }
+  .yt-row > :not(:first-child) { text-align:right; }
+  .yt-m { font-weight:700; color:var(--text); display:flex; align-items:center; gap:4px; }
+  .yt-tag { font-size:11px; }
+  .yt-pos { color:var(--green); font-weight:800; }
+  .yt-neg { color:var(--red); font-weight:800; }
+  .yt-tot { border-top:1.5px solid var(--border); border-radius:0; margin-top:4px; padding-top:10px; background:none !important; font-weight:800; }
+  .year-note { font-size:12px; color:var(--text2); margin:-4px 0 12px; line-height:1.5; }
+  .year-vs { display:flex; flex-direction:column; gap:8px; }
+  .yv-row { display:grid; grid-template-columns:62px 1fr 92px; gap:10px; align-items:center; font-size:13px; }
+  .yv-m { font-weight:700; }
+  .yv-track { position:relative; height:10px; background:var(--bg3); border-radius:6px; }
+  .yv-mid { position:absolute; left:50%; top:-3px; bottom:-3px; width:2px; background:var(--text2); opacity:.35; border-radius:1px; }
+  .yv-bar { position:absolute; top:0; bottom:0; border-radius:6px; }
+  .yv-amt { text-align:right; font-weight:700; font-size:12px; }
+  .year-cats { display:flex; flex-direction:column; gap:14px; }
+  .yc-top { display:flex; justify-content:space-between; align-items:baseline; gap:10px; font-size:14px; }
+  .yc-name { font-weight:600; color:var(--text); }
+  .yc-amt { font-weight:800; color:var(--text); white-space:nowrap; }
+  .yc-track { height:8px; background:var(--bg3); border-radius:5px; overflow:hidden; margin:6px 0 4px; }
+  .yc-bar { height:100%; border-radius:5px; }
+  .yc-sub { font-size:11.5px; color:var(--text2); }
   /* ── INVESTIMENTI ── */
   .inv-totals {
     display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;
@@ -656,6 +690,10 @@
   <button class="tab active" onclick="switchTab('overview',this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>
     Overview
+  </button>
+  <button class="tab" onclick="switchTab('year',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M8 14h2M14 14h2M8 17.5h2"/></svg>
+    Anno
   </button>
   <button class="tab" onclick="switchTab('transactions',this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
@@ -808,6 +846,45 @@
   </div>
 
   <!-- HISTORY -->
+  <!-- ANNO -->
+  <div class="section" id="sec-year">
+    <div class="year-head">
+      <div>
+        <div class="year-title">Il tuo anno</div>
+        <div class="year-sub" id="yearSub">—</div>
+      </div>
+      <select class="year-sel" id="yearSel" onchange="renderYear()"></select>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card kpi-income"><div class="kpi-label">Entrate</div><div class="kpi-value" id="yInc">€0</div><div class="kpi-sub" id="yIncSub">—</div></div>
+      <div class="kpi-card kpi-expense"><div class="kpi-label">Uscite</div><div class="kpi-value" id="yExp">€0</div><div class="kpi-sub" id="yExpSub">—</div></div>
+      <div class="kpi-card kpi-balance"><div class="kpi-label">Risparmiato</div><div class="kpi-value" id="ySave">€0</div><div class="kpi-sub" id="ySaveSub">—</div></div>
+      <div class="kpi-card kpi-daily"><div class="kpi-label">Tasso di risparmio</div><div class="kpi-value" id="yRate">—</div><div class="kpi-sub" id="yRateSub">delle entrate</div></div>
+      <div class="kpi-card kpi-top"><div class="kpi-label">Investito nel PAC</div><div class="kpi-value" id="yPac">€0</div><div class="kpi-sub" id="yPacSub">—</div></div>
+      <div class="kpi-card kpi-vs"><div class="kpi-label">Patrimonio messo da parte</div><div class="kpi-value" id="yTot">€0</div><div class="kpi-sub">risparmio + PAC</div></div>
+    </div>
+
+    <div class="insight-row" id="yInsights"></div>
+
+    <div class="card">
+      <div class="card-title">Mese per mese</div>
+      <div class="chart-wrap" style="height:240px"><canvas id="yearChart"></canvas></div>
+      <div class="year-table" id="yearTable"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Dove hai risparmiato e dove no</div>
+      <div class="year-note" id="yAvgNote"></div>
+      <div class="year-vs" id="yearVsAvg"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Spese dell'anno per categoria</div>
+      <div class="year-cats" id="yearCats"></div>
+    </div>
+  </div>
+
   <div class="section" id="sec-history">
     <div class="card">
       <div class="card-title">Mesi salvati</div>
@@ -1084,8 +1161,8 @@ const KW = {
   salute:         ['farmacia','dottore','medico','clinica','ospedale','dentista','ottico','oculista','fisioterapia','visita','analisi','laboratorio','parafarmacia','sanitaria'],
   abbonamenti:    ['netflix','spotify','disney','amazon prime','apple ','google ','youtube','dazn','mediaset','paramount','sky sport','abbonamento','membership','icloud'],
   casa:           ['affitto','rent','canone','arredamento','mobili','elettrodomestici','riparazione','idraulico','elettricista','pulizie','giardiniere','amministratore'],
-  istruzione:     ['palestra','piscina','decathlon','sportland','gym','fitness'],
-  intrattenimento:['cinema','teatro','concerto','museo','palestra','fitness','piscina','yoga','ticketmaster','ticketone','hotel','airbnb','booking','treatwell','cortinovis'],
+  istruzione:     ['palestra','piscina','decathlon','sportland','gym','fitness','orange'],
+  intrattenimento:['cinema','teatro','concerto','museo','yoga','ticketmaster','ticketone','uci '],
   cura:           ['cura della persona','barbiere','parrucchiere','estetista','beauty','spa'],
   investimenti:   ['savings plan','msci world','msci em','ishares','etf','ucits','core msci','physical gold','xetra','vanguard','amundi','lyxor','xtrackers'],
   interessi:      ['interest payment','interest payout','interessi','cedola','dividendo','dividend'],
@@ -1254,6 +1331,7 @@ function switchTab(id, btn) {
   if (id === 'transactions') renderTx();
   if (id === 'history') renderHistory();
   if (id === 'invest') renderInvest();
+  if (id === 'year') renderYear();
 }
 
 function onMonthChange() {
@@ -2535,6 +2613,147 @@ function showToast(msg) {
 // ─────────────────────────────────────────────
 // START
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// ANNO: visione d'insieme
+// ─────────────────────────────────────────────
+let yearChartInst = null;
+const MESI_IT = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+function fmtSigned(n) { return (n < 0 ? '−' : '+') + fmtEur(n); }
+
+function renderYear() {
+  const all = getAllData();
+  const years = [...new Set(Object.keys(all).filter(m => (all[m]||[]).length).map(m => m.slice(0,4)))].sort().reverse();
+  const sel = document.getElementById('yearSel');
+  if (!sel) return;
+  const prev = sel.value;
+  if (!years.length) years.push(String(new Date().getFullYear()));
+  sel.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
+  sel.value = years.includes(prev) ? prev : years[0];
+  const year = sel.value;
+
+  // Mesi con dati dell'anno scelto
+  const months = Object.keys(all).filter(m => m.startsWith(year) && (all[m]||[]).length).sort();
+  const rows = months.map(m => {
+    const txs = all[m];
+    const inc = txs.filter(t => t.amount > 0).reduce((a,t) => a + t.amount, 0);
+    const exp = expenseTotal(txs);
+    return { m, inc, exp, save: inc - exp };
+  });
+  const n = rows.length;
+  const totInc  = rows.reduce((a,r) => a + r.inc, 0);
+  const totExp  = rows.reduce((a,r) => a + r.exp, 0);
+  const totSave = totInc - totExp;
+  const avgExp  = n ? totExp / n : 0;
+  const rate    = totInc > 0 ? totSave / totInc * 100 : null;
+
+  // PAC dell'anno (sezione Investimenti)
+  let pacYear = 0, pacN = 0;
+  try {
+    (getInv('pac').entries || []).filter(e => e.month.startsWith(year)).forEach(e => { pacYear += e.amount; pacN++; });
+  } catch (e) {}
+
+  const first = n ? MESI_IT[+rows[0].m.slice(5)-1] : '';
+  const last  = n ? MESI_IT[+rows[n-1].m.slice(5)-1] : '';
+  setText('yearSub', n ? `${n} mes${n===1?'e':'i'} registrat${n===1?'o':'i'} · ${first}${n>1?' – '+last:''}` : 'Nessun dato per questo anno');
+  setText('yInc', fmtEur(totInc));   setText('yIncSub', n ? `${fmtEur(totInc/n)} al mese` : '—');
+  setText('yExp', fmtEur(totExp));   setText('yExpSub', n ? `${fmtEur(avgExp)} al mese` : '—');
+  setText('ySave', (totSave < 0 ? '−' : '') + fmtEur(totSave));
+  setText('ySaveSub', n ? `${totSave >= 0 ? '' : '−'}${fmtEur(totSave/n)} al mese` : '—');
+  setText('yRate', rate === null ? '—' : `${rate.toFixed(0)}%`);
+  setText('yPac', fmtEur(pacYear));  setText('yPacSub', pacN ? `${pacN} quot${pacN===1?'a':'e'} acquistat${pacN===1?'a':'e'}` : 'nessuna quota');
+  setText('yTot', (totSave + pacYear < 0 ? '−' : '') + fmtEur(totSave + pacYear));
+
+  // Migliore / peggiore
+  const best  = n ? rows.reduce((a,r) => r.save > a.save ? r : a) : null;
+  const worst = n ? rows.reduce((a,r) => r.save < a.save ? r : a) : null;
+  const positive = rows.filter(r => r.save >= 0).length;
+
+  // Spese per categoria nell'anno
+  const catTot = {};
+  months.forEach(m => all[m].filter(t => t.amount < 0).forEach(t => {
+    const c = t.category || 'altro'; catTot[c] = (catTot[c] || 0) + Math.abs(t.amount);
+  }));
+  const cats = Object.entries(catTot).sort((a,b) => b[1] - a[1]);
+
+  // Insight
+  const chips = [];
+  if (n) {
+    chips.push(`✅ <strong>${positive} su ${n}</strong> mesi chiusi in positivo`);
+    if (best && n > 1)  chips.push(`🏆 Mese migliore: <strong>${fmtMonthLabel(best.m)}</strong> (${fmtSigned(best.save)})`);
+    if (worst && n > 1 && worst.save < best.save) chips.push(`📉 Mese più difficile: <strong>${fmtMonthLabel(worst.m)}</strong> (${fmtSigned(worst.save)})`);
+    if (cats.length) chips.push(`${getCatInfo(cats[0][0]).icon} Voce più pesante: <strong>${getCatInfo(cats[0][0]).label}</strong> (${(cats[0][1]/totExp*100).toFixed(0)}% delle uscite)`);
+  }
+  document.getElementById('yInsights').innerHTML = chips.map(c => `<div class="insight-chip">${c}</div>`).join('');
+
+  // Tabella mese per mese
+  const tbl = document.getElementById('yearTable');
+  if (!n) {
+    tbl.innerHTML = '<div class="no-data">Importa almeno un mese per vedere il riepilogo</div>';
+  } else {
+    tbl.innerHTML =
+      `<div class="yt-row yt-head"><div>Mese</div><div>Entrate</div><div>Uscite</div><div>Saldo</div></div>` +
+      rows.map(r => {
+        const tag = (n > 1 && r === best) ? '<span class="yt-tag">🏆</span>' : (n > 1 && r === worst && r.save < 0) ? '<span class="yt-tag">⚠️</span>' : '';
+        return `<div class="yt-row"><div class="yt-m">${fmtMonthLabel(r.m).split(' ')[0]} ${tag}</div><div>${fmtEur(r.inc)}</div><div>${fmtEur(r.exp)}</div><div class="${r.save>=0?'yt-pos':'yt-neg'}">${fmtSigned(r.save)}</div></div>`;
+      }).join('') +
+      `<div class="yt-row yt-tot"><div>Totale</div><div>${fmtEur(totInc)}</div><div>${fmtEur(totExp)}</div><div class="${totSave>=0?'yt-pos':'yt-neg'}">${fmtSigned(totSave)}</div></div>`;
+  }
+
+  // Sopra / sotto la spesa media
+  setText('yAvgNote', n ? `Spesa media mensile: <strong>${fmtEur(avgExp)}</strong>. A sinistra i mesi in cui hai speso meno della media (risparmio), a destra quelli in cui hai speso di più.` : '');
+  const maxDiff = Math.max(1, ...rows.map(r => Math.abs(r.exp - avgExp)));
+  const green = themeColorVar('--green', .85), red = themeColorVar('--red', .85);
+  document.getElementById('yearVsAvg').innerHTML = rows.map(r => {
+    const d = r.exp - avgExp;                       // >0 = speso più della media
+    const w = Math.abs(d) / maxDiff * 50;           // metà traccia = scarto massimo
+    const style = d <= 0 ? `right:50%;width:${w}%;background:${green}` : `left:50%;width:${w}%;background:${red}`;
+    return `<div class="yv-row"><div class="yv-m">${fmtMonthLabel(r.m).split(' ')[0]}</div>
+      <div class="yv-track"><div class="yv-mid"></div><div class="yv-bar" style="${style}"></div></div>
+      <div class="yv-amt ${d<=0?'yt-pos':'yt-neg'}">${d<=0?'−':'+'}${fmtEur(d)}</div></div>`;
+  }).join('');
+
+  // Categorie
+  const maxCat = cats.length ? cats[0][1] : 1;
+  document.getElementById('yearCats').innerHTML = cats.length ? cats.map(([c,v]) => {
+    const ci = getCatInfo(c);
+    return `<div class="yc-row">
+      <div class="yc-top"><span class="yc-name">${ci.icon} ${ci.label}</span><span class="yc-amt">${fmtEur(v)}</span></div>
+      <div class="yc-track"><div class="yc-bar" style="width:${(v/maxCat*100).toFixed(1)}%;background:${ci.color}"></div></div>
+      <div class="yc-sub">${fmtEur(v/n)} al mese · ${(v/totExp*100).toFixed(0)}% delle uscite</div>
+    </div>`;
+  }).join('') : '<div class="no-data">Nessuna spesa</div>';
+
+  // Grafico: entrate/uscite per mese + risparmio cumulato
+  const cs = getComputedStyle(document.documentElement);
+  const textColor = cs.getPropertyValue('--text2').trim(), gridColor = cs.getPropertyValue('--border').trim();
+  let run = 0; const cum = rows.map(r => (run += r.save));
+  if (yearChartInst) { yearChartInst.destroy(); yearChartInst = null; }
+  const cv = document.getElementById('yearChart');
+  if (!cv || !n || typeof Chart === 'undefined') return;
+  yearChartInst = new Chart(cv.getContext('2d'), {
+    data: {
+      labels: rows.map(r => fmtMonthLabel(r.m).split(' ')[0]),
+      datasets: [
+        { type:'line', label:'Risparmio cumulato', data:cum, borderColor:themeColorVar('--accent'), backgroundColor:themeColorVar('--accent',.15),
+          tension:.35, pointRadius:3, borderWidth:2.5, yAxisID:'y', order:0 },
+        { type:'bar', label:'Entrate', data:rows.map(r=>r.inc), backgroundColor:themeColorVar('--green',.75), borderRadius:5, order:1 },
+        { type:'bar', label:'Uscite',  data:rows.map(r=>r.exp), backgroundColor:themeColorVar('--red',.75),   borderRadius:5, order:1 },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: {
+        legend: { position:'bottom', labels:{ color:textColor, font:{size:11}, boxWidth:10, boxHeight:10 } },
+        tooltip: { callbacks:{ label: c => ` ${c.dataset.label}: ${c.dataset.type==='line' ? fmtSigned(c.parsed.y) : fmtEur(c.parsed.y)}` } }
+      },
+      scales: {
+        x: { ticks:{ color:textColor, font:{size:10} }, grid:{ display:false } },
+        y: { ticks:{ color:textColor, font:{size:10}, callback:v => '€'+(Math.abs(v)>=1000 ? (v/1000).toFixed(1)+'k' : v) }, grid:{ color:gridColor } }
+      }
+    }
+  });
+}
+
 let invCharts = {};
 // Categorie del PAC (per l'istogramma stacked)
 const PAC_CATS = [
