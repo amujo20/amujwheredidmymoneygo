@@ -636,6 +636,7 @@
     background: var(--bg3); font-size: 14px;
   }
   .inv-entry-month  { font-weight: 600; color: var(--text); }
+  .inv-oneoff { background: var(--bg2); color: var(--text2); border: 1px dashed var(--border); }
   .inv-cat-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
   .inv-entry-amount { font-weight: 700; color: var(--accent); margin-left: auto; }
   .inv-entry-del {
@@ -2870,17 +2871,19 @@ function renderInvCharts(key, lineId, barId) {
   });
 
   if (key === 'pac') {
-    // Istogramma stacked per categoria (World / Emerging / Oro)
-    const months = [...new Set(sorted.map(e => e.month))].sort();
+    // Istogramma stacked per categoria (World / Emerging / Oro).
+    // Gli acquisti una tantum restano nel totale e nella linea cumulativa, ma non nelle barre.
+    const recurring = sorted.filter(e => !e.oneoff);
+    const months = [...new Set(recurring.map(e => e.month))].sort();
     // categorie presenti nei dati, in ordine PAC_CATS + eventuale "Altro"
-    const presentKeys = [...new Set(sorted.map(e => pacCat(e.cat).key))];
+    const presentKeys = [...new Set(recurring.map(e => pacCat(e.cat).key))];
     const orderedCats = [
       ...PAC_CATS.filter(c => presentKeys.includes(c.key)),
       ...(presentKeys.includes('altro') ? [pacCat(null)] : [])
     ];
     const datasets = orderedCats.map(c => ({
       label: c.label,
-      data: months.map(mo => sorted.filter(e => e.month === mo && pacCat(e.cat).key === c.key)
+      data: months.map(mo => recurring.filter(e => e.month === mo && pacCat(e.cat).key === c.key)
                                    .reduce((s, e) => s + e.amount, 0)),
       backgroundColor: c.color + 'dd',
       borderRadius: 4, borderSkipped: false, stack: 'pac',
@@ -2942,13 +2945,14 @@ function renderInvCard(key, initialId, listId, totalId, subId) {
   }
   listEl.innerHTML = sorted.map((e) => {
     const c = key === 'pac' ? pacCat(e.cat) : null;
-    const badge = c ? `<span class="inv-cat-badge" style="background:${c.color}22;color:${c.color}">${c.emoji} ${c.label}</span>` : '';
+    const badge = (c ? `<span class="inv-cat-badge" style="background:${c.color}22;color:${c.color}">${c.emoji} ${c.label}</span>` : '')
+      + (e.oneoff ? '<span class="inv-cat-badge inv-oneoff">⚡ Una tantum</span>' : '');
     return `
     <div class="inv-entry">
       <span class="inv-entry-month">${fmtInvMonth(e.month)}</span>
       ${badge}
       <span class="inv-entry-amount">${fmtEur(e.amount)}</span>
-      <button class="inv-entry-del" onclick="deleteInvEntry('${key}','${e.month}','${e.cat||''}')" title="Elimina">✕</button>
+      <button class="inv-entry-del" onclick="deleteInvEntry('${key}','${e.month}','${e.cat||''}',${e.oneoff?1:0})" title="Elimina">✕</button>
     </div>`;
   }).join('');
 }
@@ -2979,7 +2983,7 @@ function addInvEntry(key) {
 
   const inv = getInv(key);
   // Identità: per il PAC è mese+categoria, per la pensione solo mese
-  const existing = inv.entries.find(e => e.month === month && (key !== 'pac' || (e.cat||'world') === cat));
+  const existing = inv.entries.find(e => e.month === month && !e.oneoff && (key !== 'pac' || (e.cat||'world') === cat));
   if (existing) {
     existing.amount += amount;
   } else {
@@ -2991,10 +2995,10 @@ function addInvEntry(key) {
   showToast('Versamento aggiunto');
 }
 
-function deleteInvEntry(key, month, cat) {
+function deleteInvEntry(key, month, cat, oneoff) {
   if (!confirm(`Eliminare il versamento di ${fmtInvMonth(month)}?`)) return;
   const inv = getInv(key);
-  inv.entries = inv.entries.filter(e => !(e.month === month && (key !== 'pac' || (e.cat||'') === (cat||''))));
+  inv.entries = inv.entries.filter(e => !(e.month === month && (key !== 'pac' || (e.cat||'') === (cat||'')) && !!e.oneoff === !!oneoff));
   setInv(key, inv);
   renderInvest();
 }
@@ -3023,7 +3027,7 @@ function fillInvRange(key) {
   const cat = key === 'pac' ? (document.getElementById('pacRangeCat')?.value || 'world') : undefined;
   const inv = getInv(key);
   months.forEach(month => {
-    const existing = inv.entries.find(e => e.month === month && (key !== 'pac' || (e.cat||'world') === cat));
+    const existing = inv.entries.find(e => e.month === month && !e.oneoff && (key !== 'pac' || (e.cat||'world') === cat));
     if (existing) existing.amount = amount;  // sovrascrive: imposta la baseline
     else inv.entries.push(key === 'pac' ? { month, amount, cat } : { month, amount });
   });
