@@ -711,16 +711,6 @@
         <div class="kpi-value" id="sumVs">—</div>
         <div class="kpi-sub" id="subVs">variazione spese</div>
       </div>
-      <div class="kpi-card kpi-biz-refund" id="kpiBizRefund" style="display:none">
-        <div class="kpi-label">💼 Rimborso in arrivo</div>
-        <div class="kpi-value" id="sumBizRefund">€0</div>
-        <div class="kpi-sub" id="subBizRefund">trasferte da rimborsare</div>
-      </div>
-      <div class="kpi-card kpi-travel-total" id="kpiTravelTotal" style="display:none">
-        <div class="kpi-label">🧳 Spese viaggio</div>
-        <div class="kpi-value" id="sumTravelTotal">€0</div>
-        <div class="kpi-sub" id="subTravelTotal">spese di viaggio del mese</div>
-      </div>
     </div>
 
     <!-- Insight chips -->
@@ -759,12 +749,6 @@
         <option value="expense">Solo spese</option>
         <option value="income">Solo entrate</option>
       </select>
-      <select id="filtFlag" onchange="renderTx()">
-        <option value="">Tutti i flag</option>
-        <option value="business">💼 Solo aziendali</option>
-        <option value="travel">🧳 Solo viaggi</option>
-        <option value="nobusiness">Escludi aziendali</option>
-      </select>
       <input type="text" id="filtSearch" placeholder="🔍 Cerca..." oninput="renderTx()">
     </div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
@@ -772,8 +756,6 @@
       <button id="btnSelAll" class="btn-sel" onclick="toggleSelectAll()">Seleziona tutto</button>
     </div>
     <div id="bulkBar" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:8px;width:100%;box-sizing:border-box;">
-      <button id="btnBizSel" class="btn-sel btn-sel-biz" onclick="bulkSetFlag('business',true)" style="flex:1 1 auto;">💼 Segna aziendali</button>
-      <button id="btnTripSel" class="btn-sel btn-sel-trip" onclick="bulkSetFlag('travel',true)" style="flex:1 1 auto;">🧳 Segna viaggi</button>
       <button id="btnDelSel" class="btn-sel btn-sel-del" onclick="deleteSelected()" style="flex:1 1 auto;">🗑️ Elimina</button>
     </div>
     <div class="tx-list" id="txList"></div>
@@ -1006,16 +988,6 @@
     <div class="mapper-label" style="margin-top:14px">📅 Data</div>
     <input type="date" id="qaDate" class="qa-text">
 
-    <div class="modal-flags" style="margin-top:14px">
-      <label class="flag-toggle">
-        <input type="checkbox" id="qaBusiness">
-        <span>💼 Spesa aziendale <span class="ft-sub">— esclusa dal budget, verrà rimborsata</span></span>
-      </label>
-      <label class="flag-toggle">
-        <input type="checkbox" id="qaTravel">
-        <span>🧳 Viaggio <span class="ft-sub">— resta nella sua categoria, aggregata come trasferta</span></span>
-      </label>
-    </div>
 
     <div class="mapper-label" style="margin-top:14px">🏷️ Categoria</div>
     <div class="modal-cats" id="qaCats"></div>
@@ -1035,16 +1007,6 @@
     <input type="number" step="0.01" id="modalAmount" class="modal-amount" oninput="onModalAmountChange()">
     <div style="font-size:11px;color:var(--text2);margin-bottom:6px">Usa il segno meno per le spese (es. -42.50), positivo per le entrate.</div>
 
-    <div class="modal-flags">
-      <label class="flag-toggle">
-        <input type="checkbox" id="modalBusiness">
-        <span>💼 Spesa aziendale</span>
-      </label>
-      <label class="flag-toggle">
-        <input type="checkbox" id="modalTravel">
-        <span>🧳 Viaggio</span>
-      </label>
-    </div>
 
     <div class="mapper-label" style="margin-top:14px">🏷️ Categoria</div>
     <div class="modal-cats" id="modalCats"></div>
@@ -1062,14 +1024,14 @@
 const CATEGORIES = [
   { id:'alimentari',      label:'Alimentari',           icon:'🛒', color:'#7a9b5e', pastel:'#d6e4c2' },
   { id:'trasporti',       label:'Trasporti',             icon:'🚗', color:'#c98a4b', pastel:'#f0dcbf' },
-  { id:'voli',            label:'Voli',                  icon:'✈️', color:'#6e8ca8', pastel:'#cddbe7' },
+  { id:'voli',            label:'Viaggi',                icon:'🧳', color:'#6e8ca8', pastel:'#cddbe7' },
   { id:'bollette',        label:'Bollette & Utenze',     icon:'💡', color:'#5e9a93', pastel:'#c4e0dc' },
   { id:'ristoranti',      label:'Ristoranti & Bar',      icon:'🍽️', color:'#c2724a', pastel:'#efcdbb' },
   { id:'shopping',        label:'Shopping',              icon:'🛍️', color:'#a85f6e', pastel:'#e6cbd1' },
   { id:'salute',          label:'Salute',                icon:'❤️', color:'#b3596b', pastel:'#ebc6cd' },
   { id:'abbonamenti',     label:'Abbonamenti',           icon:'📱', color:'#6786a3', pastel:'#cad7e2' },
   { id:'casa',            label:'Casa & Affitto',        icon:'🏠', color:'#8a9b50', pastel:'#dde3bd' },
-  { id:'istruzione',      label:'Corsi & Sport',         icon:'🏃', color:'#7d7aa8', pastel:'#d4d2e6' },
+  { id:'istruzione',      label:'Sport',                 icon:'🏃', color:'#7d7aa8', pastel:'#d4d2e6' },
   { id:'intrattenimento', label:'Tempo libero',          icon:'🎬', color:'#a86a9b', pastel:'#e4cfe0' },
   { id:'hitech',          label:'Hi-tech & Informatica', icon:'💻', color:'#6b7689', pastel:'#cfd4dd' },
   { id:'cura',            label:'Cura della persona',    icon:'💆', color:'#c08aa0', pastel:'#ecd6df' },
@@ -1078,7 +1040,6 @@ const CATEGORIES = [
   { id:'cointestato',     label:'Cointestato',           icon:'🤝', color:'#9c7aa8', pastel:'#ddd2e4' },
   { id:'bonifici',        label:'Bonifici in uscita',    icon:'💸', color:'#bb8a4a', pastel:'#ecdcbf' },
   { id:'entrate',         label:'Entrate',               icon:'💰', color:'#6e9a6a', pastel:'#cfe2cb' },
-  { id:'pedaggi',         label:'Pedaggi & Telepass',    icon:'🛣️', color:'#a67a52', pastel:'#e4d3c0' },
   { id:'addebiti',        label:'Addebiti vari',         icon:'📋', color:'#8a8478', pastel:'#dad6cd' },
   { id:'altro',           label:'Altro',                 icon:'📦', color:'#a39c90', pastel:'#dedacf' },
 ];
@@ -1088,7 +1049,7 @@ const EXACT_CAT_MAP = {
   // Intesa San Paolo categories
   'tempo libero varie':                      'intrattenimento',
   'trasporti, noleggi, taxi e parcheggi':    'trasporti',
-  'treno, aereo, nave':                      'voli',
+  'treno, aereo, nave':                      'trasporti',
   'bonifici in uscita':                      'bonifici',
   'stipendi e pensioni':                     'entrate',
   'ristoranti e bar':                        'ristoranti',
@@ -1099,7 +1060,7 @@ const EXACT_CAT_MAP = {
   'libri, film e musica':                    'intrattenimento',
   'rimborsi spese e storni':                 'entrate',
   'altre uscite':                            'altro',
-  'pedaggi e telepass':                      'pedaggi',
+  'pedaggi e telepass':                      'trasporti',
   'cura della persona':                      'cura',
   'addebiti vari':                           'addebiti',
   // Trade Republic type values (fallback when type col not found)
@@ -1116,14 +1077,14 @@ const EXACT_CAT_MAP = {
 const KW = {
   alimentari:     ['supermercato','coop','esselunga','lidl','conad','pam ','carrefour','iper','sma','eurospin','penny','aldì','aldi','despar','famila','bennet','spesa','alimentari','frutta','verdura','panetteria','macelleria','pescheria','sigma','naturasì','il gigante'],
   trasporti:      ['carburante','benzina','diesel','autostrada','pedaggio','parcheggio','parking','trenitalia','italo','taxi','wetaxi','uber','bolt','atm ','atac','amtab','gtt','bus','treno','metro','frecciarossa','frecciargento','motore','freni','officina','revisione','nave','traghetto','ferry','eni station','q8','total','esso','agip','tamoil','satap','mycicero','mobilita'],
-  voli:           ['aereo','volo','airport','ryanair','easyjet','wizz','alitalia','ita airways'],
+  voli:           ['aereo','volo','airport','ryanair','easyjet','wizz','alitalia','ita airways','volotea','edreams','booking.com','airbnb','hotel','getyourguide','expedia'],
   bollette:       ['enel','eni gas','a2a','hera','iren','acea','tim ','vodafone','wind','fastweb','telecom','tiscali','sky ','luce ','acqua ','bolletta','utenza','condominio','rata mutuo','mutuo','assicurazione','generali','unipol','allianz','zurich','orange italia','tspay'],
   ristoranti:     ['ristorante','pizzeria','bar ','caffè','caffe','cafe','osteria','trattoria','mcdonald','burger king','kfc','sushi','kebab','gyros','mozzarella bar','pizza','pub','risto','grill','delivery','just eat','glovo','deliveroo','foodora','thefork','backbar','vineria'],
   shopping:       ['amazon','zalando','zara','h&m','primark','ikea','mediaworld','unieuro','decathlon','abbigliamento','scarpe','elettronica','leroy merlin','bricocenter','brico','obi ','coin','ovs','rinascente','feltrinelli','fnac','ebay','aliexpress','shein','asos','pampling','whsmith','tezenis','vinted'],
   salute:         ['farmacia','dottore','medico','clinica','ospedale','dentista','ottico','oculista','fisioterapia','visita','analisi','laboratorio','parafarmacia','sanitaria'],
   abbonamenti:    ['netflix','spotify','disney','amazon prime','apple ','google ','youtube','dazn','mediaset','paramount','sky sport','abbonamento','membership','icloud'],
   casa:           ['affitto','rent','canone','arredamento','mobili','elettrodomestici','riparazione','idraulico','elettricista','pulizie','giardiniere','amministratore'],
-  istruzione:     ['università','scuola','corso','libri','tasse universitarie','iscrizione','formazione','udemy','coursera'],
+  istruzione:     ['palestra','piscina','decathlon','sportland','gym','fitness'],
   intrattenimento:['cinema','teatro','concerto','museo','palestra','fitness','piscina','yoga','ticketmaster','ticketone','hotel','airbnb','booking','treatwell','cortinovis'],
   cura:           ['cura della persona','barbiere','parrucchiere','estetista','beauty','spa'],
   investimenti:   ['savings plan','msci world','msci em','ishares','etf','ucits','core msci','physical gold','xetra','vanguard','amundi','lyxor','xtrackers'],
@@ -1209,6 +1170,10 @@ function init() {
   // Rimuovi il mese di Dicembre 2025 se presente
   const all = getAllData();
   if (all['2025-12']) { delete all['2025-12']; saveAllData(all); }
+  // Categoria Pedaggi rimossa: confluisce nei Trasporti
+  let migr=false;
+  Object.values(all).forEach(l => l.forEach(t => { if (t.category==='pedaggi') { t.category='trasporti'; migr=true; } }));
+  if (migr) saveAllData(all);
   populateMonthSel();
   setDefaultImportMonth();
   renderAll();
@@ -1436,8 +1401,6 @@ function openQuickAdd() {
   setQaSign(-1);
   document.getElementById('qaAmount').value = '';
   document.getElementById('qaDesc').value = '';
-  document.getElementById('qaBusiness').checked = false;
-  document.getElementById('qaTravel').checked = false;
   // Default date = today if today is in current month, else first of selected month
   const dateInput = document.getElementById('qaDate');
   const todayIso = new Date().toISOString().slice(0,10);
@@ -1475,8 +1438,6 @@ function saveQuickAdd() {
     amount: qaSign * Math.abs(val),
     account: 'Manuale',
     category: qaSign > 0 ? 'entrate' : qaCat,
-    business: document.getElementById('qaBusiness').checked,
-    travel: document.getElementById('qaTravel').checked,
     manual: true,
   };
 
@@ -1499,7 +1460,7 @@ function saveQuickAdd() {
 // OVERVIEW
 // ─────────────────────────────────────────────
 function isExpense(t)         { return t.amount < 0; }
-function isPersonalExpense(t) { return t.amount < 0 && !t.business; }
+function isPersonalExpense(t) { return t.amount < 0; }
 function expenseTotal(txs) {
   return Math.abs(txs.filter(isExpense).reduce((a,t)=>a+t.amount,0));
 }
@@ -1507,10 +1468,10 @@ function personalExpenseTotal(txs) {
   return Math.abs(txs.filter(isPersonalExpense).reduce((a,t)=>a+t.amount,0));
 }
 function businessExpenseTotal(txs) {
-  return Math.abs(txs.filter(t=>t.amount<0 && t.business).reduce((a,t)=>a+t.amount,0));
+  return 0; // flag spese aziendali rimosso
 }
 function travelExpenseTotal(txs) {
-  return Math.abs(txs.filter(t=>t.amount<0 && t.travel).reduce((a,t)=>a+t.amount,0));
+  return 0; // flag viaggio rimosso: i viaggi sono una categoria
 }
 
 // Pattern a righe diagonali per le spese aziendali nei grafici
@@ -1608,7 +1569,7 @@ function renderOverview() {
   const catTotals = {};
   expenses.forEach(t => { const c = t.category||'altro'; catTotals[c]=(catTotals[c]||0)+Math.abs(t.amount); });
   const bizCatTotals = {};
-  txs.filter(t=>t.amount<0&&t.business).forEach(t => { const c=t.category||'altro'; bizCatTotals[c]=(bizCatTotals[c]||0)+Math.abs(t.amount); });
+  [].forEach(t => { const c=t.category||'altro'; bizCatTotals[c]=(bizCatTotals[c]||0)+Math.abs(t.amount); });
   const sorted = Object.entries(catTotals).sort((a,b)=>b[1]-a[1]);
   if (sorted.length) {
     const [topId, topAmt] = sorted[0];
@@ -1759,7 +1720,6 @@ function renderOverview() {
       datasets: [
         { label:'Entrate',   data:barInc,      backgroundColor:themeColorVar('--green',.82), borderRadius:8 },
         { label:'Spese',     data:barPersonal, backgroundColor:themeColorVar('--red',.82),   borderRadius:6, stack:'exp' },
-        { label:'Aziendali', data:barBiz,      backgroundColor:hatchPattern(redColor),       borderRadius:6, stack:'exp' },
       ]
     },
     options: {
@@ -1792,7 +1752,7 @@ function renderTx() {
   const cat = document.getElementById('filtCat').value;
   const acc = document.getElementById('filtAccount').value;
   const type = document.getElementById('filtType').value;
-  const flag = document.getElementById('filtFlag').value;
+  const flag = '';
   const search = document.getElementById('filtSearch').value.toLowerCase();
 
   let filtered = txs.filter(t => {
@@ -1823,8 +1783,6 @@ function renderTx() {
         <div class="tx-desc">${escHtml(t.description)}</div>
         <div class="tx-meta">${fmtDate(t.date)} · ${escHtml(t.account||'')}</div>
         <span class="tx-cat-badge" style="background:${info.pastel||info.color+'22'};border-color:${info.color}44">${info.icon} ${info.label} ✏️</span>
-        ${t.business ? '<span class="tx-flag flag-biz">💼 Aziendale</span>' : ''}
-        ${t.travel ? '<span class="tx-flag flag-trip">🧳 Viaggio</span>' : ''}
       </div>
       <div class="tx-right">
         <div class="tx-amount ${isPos?'pos':'neg'}">${isPos?'+':''}${fmtEur(t.amount)}</div>
@@ -1861,8 +1819,6 @@ function openTxModal(txId) {
   pendingCat = tx.category || 'altro';
   document.getElementById('modalDesc').textContent = tx.description;
   document.getElementById('modalAmount').value = Math.round(tx.amount*100)/100;
-  document.getElementById('modalBusiness').checked = !!tx.business;
-  document.getElementById('modalTravel').checked = !!tx.travel;
   renderModalCats();
   document.getElementById('catModal').classList.add('open');
 }
@@ -1904,8 +1860,6 @@ function saveTxEdit() {
 
   const oldCat = tx.category;
   tx.category = pendingCat;
-  tx.business = document.getElementById('modalBusiness').checked;
-  tx.travel   = document.getElementById('modalTravel').checked;
 
   saveMonthData(currentMonth, txs);
 
@@ -1944,17 +1898,6 @@ function updateBulkBar() {
   btnSel.textContent = (checked > 0 && checked === total) ? 'Deseleziona tutto' : 'Seleziona tutto';
 }
 
-function bulkSetFlag(field, value) {
-  if (!selectedIds.size) return;
-  const txs = getMonthData(currentMonth);
-  txs.forEach(t => { if (selectedIds.has(t.id)) t[field] = value; });
-  const n = selectedIds.size;
-  setMonthData(currentMonth, txs);
-  selectedIds.clear();
-  renderTx();
-  renderOverview();
-  showToast(`Aggiornate ${n} transazion${n===1?'e':'i'}`);
-}
 
 function toggleSelectAll() {
   const boxes = document.querySelectorAll('.tx-check');
