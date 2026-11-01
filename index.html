@@ -435,7 +435,12 @@
     text-transform: uppercase; letter-spacing: .6px; margin-bottom: 12px;
   }
   .chart-wrap { position: relative; height: 220px; }
-  .pie-wrap { height: 260px; max-width: 320px; margin: 0 auto; }
+  .pie-wrap { height: 240px; max-width: 300px; margin: 0 auto; }
+  .pie-legend { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 7px 14px; margin-top: 16px; }
+  .pl-item { display: flex; align-items: center; gap: 7px; min-width: 0; font-size: 12.5px; color: var(--text); }
+  .pl-dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+  .pl-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pl-pct { color: var(--text2); font-weight: 700; font-variant-numeric: tabular-nums; }
   /* INSIGHTS */
   .insight-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
   .insight-chip {
@@ -902,6 +907,7 @@
     <div class="card">
       <div class="card-title">Spese per categoria</div>
       <div class="chart-wrap pie-wrap"><canvas id="pieChart"></canvas></div>
+      <div class="pie-legend" id="pieLegend"></div>
     </div>
 
     <!-- Biggest changes vs last month -->
@@ -1902,6 +1908,16 @@ function renderOverview() {
       },
     }
   });
+
+  // Legenda sotto la torta, fuori dal riquadro del grafico così non gli ruba spazio
+  const legEl = document.getElementById('pieLegend');
+  if (legEl) {
+    const tot = pieData.reduce((x,y) => x + y, 0) || 1;
+    legEl.innerHTML = pieData.map((v,i) => ({ v, i })).sort((a,b) => b.v - a.v).map(({ v, i }) => {
+      const col = typeof pieBgColors[i] === 'string' ? pieBgColors[i] : 'var(--text2)';
+      return `<div class="pl-item"><span class="pl-dot" style="background:${col}"></span><span class="pl-name">${pieLabels[i]}</span><span class="pl-pct">${(v/tot*100).toFixed(0)}%</span></div>`;
+    }).join('');
+  }
 
   // ── Cat list ──
   const maxVal = (sorted[0]?.[1]) || 1;
