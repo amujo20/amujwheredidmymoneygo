@@ -1531,25 +1531,58 @@ function hslStr(h,s,l,a) {
   return a==null ? `hsl(${h.toFixed(0)},${s.toFixed(0)}%,${l.toFixed(0)}%)`
                  : `hsla(${h.toFixed(0)},${s.toFixed(0)}%,${l.toFixed(0)}%,${a})`;
 }
-// Genera n colori distinti ma armonici a partire dai colori-chiave del tema
+// Genera n colori distinti ma armonici a partire dai colori-chiave del tema.
+// 1) colori-chiave del tema senza doppioni; 2) un insieme di varianti (più chiare/scure,
+// tinta leggermente spostata); 3) scelta "più lontano da tutti": a ogni passo prende la
+// variante con la massima distanza percettiva (ΔE in Lab) dai colori già scelti.
+// Le prime fette (le categorie più grandi) ricevono i colori del tema così come sono.
+function hslToRgb(h, s, l) {
+  h = ((h % 360) + 360) % 360 / 360; s /= 100; l /= 100;
+  if (s === 0) return [l*255, l*255, l*255];
+  const q = l < .5 ? l*(1+s) : l+s-l*s, p = 2*l-q;
+  const t = x => { x = (x+1) % 1; return x < 1/6 ? p+(q-p)*6*x : x < 1/2 ? q : x < 2/3 ? p+(q-p)*(2/3-x)*6 : p; };
+  return [t(h+1/3)*255, t(h)*255, t(h-1/3)*255];
+}
+function rgbToLab([r,g,b]) {
+  const f = v => { v /= 255; return v > .04045 ? ((v+.055)/1.055)**2.4 : v/12.92; };
+  const R = f(r), G = f(g), B = f(b);
+  const h = t => t > .008856 ? Math.cbrt(t) : 7.787*t + 16/116;
+  const x = h((R*.4124+G*.3576+B*.1805)/.95047), y = h(R*.2126+G*.7152+B*.0722), z = h((R*.0193+G*.1192+B*.9505)/1.08883);
+  return [116*y-16, 500*(x-y), 200*(y-z)];
+}
+const dE = (a, b) => Math.hypot(a[0]-b[0], a[1]-b[1], a[2]-b[2]);
+const _chartColorCache = {};
 function themeChartColors(n) {
   const cs = getComputedStyle(document.documentElement);
-  const anchors = ['--accent2','--accent','--orange','--green','--kpi-top','--red','--text2']
+  const key = (document.documentElement.getAttribute('data-theme') || '') + '|' + n;
+  if (_chartColorCache[key]) return _chartColorCache[key];
+  const anchors = [];
+  ['--accent2','--red','--green','--orange','--accent','--kpi-top']
     .map(v => { const m = cs.getPropertyValue(v).match(/#([0-9a-fA-F]{3,6})/); return m ? m[0] : null; })
-    .filter(Boolean)
-    .map(hexToHsl);
+    .filter(Boolean).map(hexToHsl)
+    .forEach(a => {
+      const c = { h:a.h, s:Math.max(28, Math.min(85, a.s)), l:Math.max(28, Math.min(74, a.l)) };
+      c.lab = rgbToLab(hslToRgb(c.h, c.s, c.l));
+      if (!anchors.some(x => dE(x.lab, c.lab) < 12)) anchors.push(c);   // niente doppioni
+    });
   if (!anchors.length) return null;
-  const out = [];
-  for (let i=0; i<n; i++) {
-    const base = anchors[i % anchors.length];
-    const cycle = Math.floor(i / anchors.length);
-    // Ad ogni giro sugli anchor sposto la luminosità per tenere le fette distinte
-    const shift = cycle===0 ? 0 : (cycle%2===1 ? 1 : -1) * 11 * Math.ceil(cycle/2);
-    const l = Math.max(30, Math.min(76, base.l + shift));
-    const s = Math.max(25, Math.min(92, base.s));
-    out.push(hslStr(base.h, s, l));
+  const pool = [];
+  anchors.forEach(a => {
+    [-12, 0, 12].forEach(dh => [32, 41, 50, 59, 68, 77].forEach(l => {
+      const s = Math.max(22, Math.min(70, a.s) - Math.abs(l - 52) * .55);  // meno saturazione agli estremi
+      pool.push({ h:a.h+dh, s, l, lab: rgbToLab(hslToRgb(a.h+dh, s, l)) });
+    }));
+  });
+  const chosen = anchors.slice(0, n);
+  while (chosen.length < n) {
+    let best = null, bestD = -1;
+    for (const c of pool) {
+      const d = Math.min(...chosen.map(x => dE(x.lab, c.lab)));
+      if (d > bestD) { bestD = d; best = c; }
+    }
+    chosen.push(best);
   }
-  return out;
+  return (_chartColorCache[key] = chosen.map(c => hslStr(c.h, c.s, c.l)));
 }
 // Colore singolo (con alpha) preso da una variabile CSS del tema
 function themeColorVar(name, alpha) {
