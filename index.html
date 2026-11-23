@@ -706,6 +706,18 @@
     .kpi-grid { grid-template-columns: repeat(6, 1fr); }
     main { padding: 20px 24px 40px; }
   }
+  .pen-summary { margin-bottom: 16px; }
+  .pen-stats { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; }
+  .pen-stats > div { background: var(--bg3); border-radius: 12px; padding: 10px; min-width: 0; }
+  .pen-l { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; color: var(--text2); margin-bottom: 4px; }
+  .pen-v { font-size: 15px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pen-pct { display: block; font-size: 11px; font-weight: 700; opacity: .85; }
+  .pen-split { display: flex; height: 12px; border-radius: 7px; overflow: hidden; gap: 2px; }
+  .pen-split i { display: block; height: 100%; }
+  .pen-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px; font-size: 12px; color: var(--text2); }
+  .pen-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .pen-legend b { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .pen-legend strong { color: var(--text); font-variant-numeric: tabular-nums; }
   /* ── DATI ── */
   .data-hint { font-size:12.5px; color:var(--text2); line-height:1.55; margin:-4px 0 12px; }
   .data-import { padding:0; }
@@ -1139,6 +1151,7 @@
     <!-- FONDO PENSIONE -->
     <div class="card">
       <div class="card-title">🛡️ Fondo Pensione</div>
+      <div class="pen-summary" id="penSummary" hidden></div>
       <div class="inv-charts-wrap">
         <div class="inv-chart-block">
           <div class="inv-chart-label">Andamento cumulativo</div>
@@ -2930,6 +2943,8 @@ const PAC_CATS = [
   { key: 'emerging', label: 'Emerging', emoji: '📈', color: '#2fa98a' },
   { key: 'oro',      label: 'Oro',      emoji: '🥇', color: '#d4a72c' },
 ];
+// Provenienza dei versamenti del fondo pensione: [campo, etichetta, colore del tema]
+const PEN_SOURCES = [['iscritto', 'Tu', '--accent2'], ['azienda', 'Azienda', '--green'], ['tfr', 'TFR', '--orange']];
 init();
 
 // ─────────────────────────────────────────────
@@ -2980,6 +2995,7 @@ function renderInvest() {
   renderInvCard('pen', 'penInitial', 'penEntries', 'invPenTotal', 'invPenSub');
   renderInvCharts('pac', 'pacLineChart', 'pacBarChart');
   renderInvCharts('pen', 'penLineChart', 'penBarChart');
+  renderPenSummary();
 }
 
 function renderInvCharts(key, lineId, barId) {
@@ -3011,7 +3027,7 @@ function renderInvCharts(key, lineId, barId) {
     plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' ' + fmtEur(ctx.parsed.y) } } },
     scales: {
       x: { ticks: { font: { size: 10 }, color: textCol, maxRotation: 45 }, grid: { display: false } },
-      y: { ticks: { font: { size: 10 }, color: textCol, callback: tickFmt }, grid: { color: gridCol } }
+      y: { beginAtZero: true, ticks: { font: { size: 10 }, color: textCol, callback: tickFmt }, grid: { color: gridCol } }
     }
   };
 
@@ -3064,7 +3080,7 @@ function renderInvCharts(key, lineId, barId) {
       },
       scales: {
         x: { stacked: true, ticks: { font: { size: 10 }, color: textCol, maxRotation: 45 }, grid: { display: false } },
-        y: { stacked: true, ticks: { font: { size: 10 }, color: textCol, callback: tickFmt }, grid: { color: gridCol } }
+        y: { stacked: true, beginAtZero: true, ticks: { font: { size: 10 }, color: textCol, callback: tickFmt }, grid: { color: gridCol } }
       }
     };
     draw(barId, pfx + 'BarEmpty', months.length > 0, {
@@ -3073,12 +3089,62 @@ function renderInvCharts(key, lineId, barId) {
       options: stackedOpts
     });
   } else {
-    draw(barId, pfx + 'BarEmpty', barAmounts.length > 0, {
-      type: 'bar',
-      data: { labels: barLabels, datasets: [{ data: barAmounts, backgroundColor: c2+'cc', borderRadius: 6, borderSkipped: false }] },
-      options: opts
-    });
+    // Fondo pensione: se l'estratto dà la ripartizione, barre impilate Tu / Azienda / TFR
+    const hasSplit = sorted.some(e => e.iscritto != null);
+    if (hasSplit) {
+      const src = PEN_SOURCES.map(([k, label, v]) => ({
+        label, data: sorted.map(e => +(e[k] || 0)), backgroundColor: themeColorVar(v, .85),
+        borderRadius: 4, borderSkipped: false, stack: 'pen'
+      }));
+      const rest = sorted.map(e => Math.max(0, e.amount - (e.iscritto||0) - (e.azienda||0) - (e.tfr||0)));
+      if (rest.some(v => v > 0.01)) src.push({ label: 'Non ripartito', data: rest, backgroundColor: themeColorVar('--text2', .5), borderRadius: 4, stack: 'pen' });
+      draw(barId, pfx + 'BarEmpty', barAmounts.length > 0, {
+        type: 'bar',
+        data: { labels: barLabels, datasets: src },
+        options: { ...opts,
+          plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, font: { size: 10 }, color: textCol } },
+                     tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmtEur(ctx.parsed.y)}` } } },
+          scales: { x: { ...opts.scales.x, stacked: true }, y: { ...opts.scales.y, stacked: true } } }
+      });
+    } else {
+      draw(barId, pfx + 'BarEmpty', barAmounts.length > 0, {
+        type: 'bar',
+        data: { labels: barLabels, datasets: [{ data: barAmounts, backgroundColor: c2+'cc', borderRadius: 6, borderSkipped: false }] },
+        options: opts
+      });
+    }
   }
+}
+
+
+// Riepilogo del fondo pensione: valore all'ultimo estratto, rendimento e ripartizione
+function renderPenSummary() {
+  const el = document.getElementById('penSummary');
+  if (!el) return;
+  const inv = getInv('pen');
+  const versato = invTotal('pen');
+  const tot = k => inv.entries.reduce((s, e) => s + (+e[k] || 0), 0);
+  const parts = PEN_SOURCES.map(([k, label, v]) => ({ label, v: tot(k), col: themeColorVar(v, .9) })).filter(p => p.v > 0);
+  const hasVal = typeof inv.valore === 'number';
+  if (!hasVal && !parts.length) { el.hidden = true; return; }
+  el.hidden = false;
+  let html = '';
+  if (hasVal) {
+    const r = inv.valore - versato, pct = versato ? r / versato * 100 : 0;
+    const cls = r >= 0 ? 'yt-pos' : 'yt-neg';
+    html += `<div class="pen-stats">
+      <div><div class="pen-l">Valore${inv.valore_al ? ' al ' + inv.valore_al : ''}</div><div class="pen-v">${fmtEur(inv.valore)}</div></div>
+      <div><div class="pen-l">Versato</div><div class="pen-v">${fmtEur(versato)}</div></div>
+      <div><div class="pen-l">Rendimento</div><div class="pen-v ${cls}">${r >= 0 ? '+' : '−'}${fmtEur(r)}<span class="pen-pct">${r >= 0 ? '+' : '−'}${Math.abs(pct).toFixed(1).replace('.', ',')}%</span></div></div>
+    </div>`;
+  }
+  if (parts.length) {
+    const sum = parts.reduce((s, p) => s + p.v, 0) || 1;
+    html += `<div class="pen-l" style="margin-top:12px">Chi ha versato</div>
+      <div class="pen-split">${parts.map(p => `<i style="width:${(p.v / sum * 100).toFixed(2)}%;background:${p.col}"></i>`).join('')}</div>
+      <div class="pen-legend">${parts.map(p => `<span><b style="background:${p.col}"></b>${p.label} <strong>${fmtEur(p.v)}</strong> · ${(p.v / sum * 100).toFixed(0)}%</span>`).join('')}</div>`;
+  }
+  el.innerHTML = html;
 }
 
 function renderInvCard(key, initialId, listId, totalId, subId) {
@@ -3101,6 +3167,11 @@ function renderInvCard(key, initialId, listId, totalId, subId) {
     } else {
       subEl.textContent = `${n} versament${n===1?'o':'i'}${inv.initial ? ' + saldo iniziale' : ''}`;
     }
+  }
+  // Fondo pensione con valore dall'estratto: in evidenza il valore attuale
+  if (key === 'pen' && typeof inv.valore === 'number') {
+    if (totalEl) totalEl.textContent = fmtEur(inv.valore);
+    if (subEl) subEl.textContent = `valore${inv.valore_al ? ' al ' + inv.valore_al : ''} · versati ${fmtEur(total)}`;
   }
 
   // Entries list
